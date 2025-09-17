@@ -1,0 +1,565 @@
+\documentclass[12pt]{extarticle}
+\usepackage[utf8]{inputenc}
+\usepackage{enumitem}
+\usepackage{cite}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{hyperref}
+\graphicspath{{images/}}
+
+\begin{document}
+
+% --- COVER PAGE ---
+\begin{titlepage}
+    \centering
+    % Title
+    {\Large \textbf{Final Project Proposal}\par}
+    \vspace{1cm}
+        
+    {\Large \textbf{Planning AI Robot Arm Assistant for Tool Handling in Engineering Projects}\par}
+    \vspace{1cm}
+    
+    % Faculty Logo
+    \includegraphics[width=0.25\textwidth]{cu_eng}\par\vspace{1cm}
+
+    % Submitted to
+    Submitted to the\\
+    Project Committee appointed by the\\
+    International School of Engineering (ISE)\\
+    Faculty of Engineering, Chulalongkorn University
+    \vspace{1cm}
+    
+    {\large \textbf{Project Advisor}} \\
+    Asst.Prof.Paulo Fernando Rocha Garcia, Ph.D.
+    \vspace{1cm}
+    
+    % Submitted by
+    {\large \textbf{Submitted By}} \\
+    \begin{tabular}{l l}
+    Kanisorn Sangchai   & 6538020621 \\
+    Methasit Boonpun    & 6538165021 \\
+    Withawin Kraipetchara & 6538191221 \\
+    Krittin Kitjaruwannakul & 6538007521 \\
+    \end{tabular}
+    \vspace{1cm}
+    
+    % Course, Faculty, University info
+    1/2025: 2147416 Final Project I\\
+Robotics and Artificial Intelligence Engineering (International Program)\\
+International School of Engineering (ISE) Faculty of Engineering, Chualongkorn University
+
+\end{titlepage}
+
+\begin{abstract}
+  Frequent tool switching in complex engineering projects disrupts workflows and reduces efficiency. Robotic assistants have been proposed as a solution for tool handling, yet many existing approaches rely heavily on end-to-end neural networks that lack interpretability and robustness in dynamic, unstructured environments. Recent research highlights the benefits of combining neural perception with symbolic reasoning, a paradigm known as neuro-symbolic artificial intelligence (NSAI). 
+Togther with large language model (LLMs) and motion planning (TAMP) frameworks. These hybrid methods have shown function in enabling robots to understand natural language, reason about tasks, and execute reliable action in real-world scenario
+
+The objective of this project is to develop a prototype of a Planning AI Robot Arm Assistant capable of supporting engineers task. The system aims to
+\begin{enumerate}
+  \item interpret natural language voice commands
+  \item translate command into interpretable symbolic task plans
+  \item detect, hold, and deliver engineering tool safely
+  \item provide transparent reasoning process
+\end{enumerate}
+By focusing on interpretability, safety, and adaptability, the project addresses current limitations of existing robotic assistants and advances the development of collaborative human-robot systems.
+
+The methodology involves integrating neural and symbolic AI within a system architecture. Speech recognition and natural language processing are used to understand user commands. These inputs are processed by a neuro-symbolic planning algorithm that generates task sequences. The system will be implemented and tested on a Universal Robots (UR) arm equipped with a gripper, depth camera, and microphone. Simulations and real-world experiment will validate the prototype to generalize to unseen scenarios and safely collaborate with human users in engineering environment  
+\end{abstract}
+
+\newpage
+\tableofcontents
+
+\newpage
+\section{Background}
+In engineering projects, practitioners often switch between multiple tools and instruments. This process disrupts workflow and can introduce inefficiencies or errors. Robotic assistants have the potential to support engineers by automating tool handling and delivery. Achieving this requires effective robotic manipulation and planning, which are typically implemented using deep learning-based, end-to-end neural networks—approaches that may struggle in novel situations and offer limited transparency. By combining neural perception, large language models, and symbolic reasoning, a more reliable and interpretable solution can be created for tool manipulation and delivery.
+
+\subsection{Robot Manipulation and Task Planning}
+Historically, robot task execution was divided into two paradigms: AI task planning and robotics motion planning. Task planning generated abstract sequences of discrete actions using symbolic frameworks such as STRIPS or PDDL, while motion planning computed collision-free paths in continuous configuration spaces. This division proved sufficient in structured factory settings, where tasks and motions could be predefined, but inadequate in unstructured, human-centric environments~\cite{tamp},\cite{optimizatoin-and-motion-planning}. Early systems, such as Shakey the Robot, assumed high-level plans could always be refined into feasible motions, an assumption that rarely holds in practice~\cite{recent-trends-in-tamp}. The core difficulty was that symbolic plans often ignored geometric and kinematic constraints, producing strategies that were logically valid but physically infeasible. Task and Motion Planning (TAMP) overcame these limitations by formulating robot planning as a hybrid discrete–continuous search problem. By combining symbolic reasoning with geometric feasibility checks and introducing an intermediate level for selecting real-valued parameters such as grasps or placements, TAMP effectively bridged high-level planning with low-level execution, employing strategies such as backtracking refinement or interleaved search to prune infeasible plans~\cite{tamp}. Beyond feasibility, optimization-based formulations yield efficient trajectories, while learning-based methods accelerate feasibility checks, guide sampling, and adapt to novel settings~\cite{optimizatoin-and-motion-planning}. Crucially, TAMP allows robots to revise task strategies when geometric constraints block execution, enabling scalable planning in complex domains~\cite{recent-trends-in-tamp}.
+
+\subsection{Large Language Models (LLMs) in Robot Manipulation}
+Large Language Models (LLMs), particularly when augmented with visual reasoning as Vision-Language Models (VLMs), are increasingly central to robot manipulation, navigation, and broader embodied AI tasks, transforming complex initial states into desired goal states through sophisticated planning~\cite{plangenllm},\cite{eval-application-challenges-llms}. Beyond directly generating action sequences, LLMs also serve as Modelers, extracting and refining structured planning models such as Planning Domain Definition Language (PDDL) specifications from natural language, which mitigates challenges in long-horizon reasoning and enhances plan reliability~\cite{llm-as-planning-formalizers}. Leveraging world knowledge, reasoning, and decision-making, LLMs facilitate Task Modeling by converting human goals into initial and goal states and decomposing complex tasks into sequential, parallel, or recursive sub-goals. In robot manipulation, LLMs/VLMs improve handling of novel objects and generate motor or programmatic actions for perception, planning, and execution~\cite{plangenllm}. Furthermore,
+their impact extends to human-robot interaction (HRI), enhancing intent interpretation and adaptability~\cite{eval-application-challenges-llms}.
+
+Functionally, LLMs enable Domain Modeling, defining essential components like actions, preconditions, and effects, sometimes through demonstrations or iterative refinement~\cite{llm-as-planning-formalizers}, and integrate with sensory data to ground language understanding in spatial contexts, ensuring executable and robust plans. Integration with classical planners, hierarchical planning, and search algorithms allows LLMs to translate abstract goals into reliable action sequences guided by world models. Closed-loop feedback systems further enable dynamic adaptation, reducing hallucinations and improving task execution, while fine-tuning on planning-specific objectives enhances correctness and generalization~\cite{plangenllm},\cite{llm-as-planning-formalizers}. 
+
+\subsection{Neuro-Symbolic Artificial Intelligence (NSAI) in Robot Manipulation}
+Neuro-Symbolic Artificial Intelligence (NSAI) is an approach in robot manipulation that combines neural networks’ perceptual strengths with symbolic AI’s reasoning capabilities to create interpretable, interactive, and generalizable robotic agents in human-centric environments~\cite{enhancing-interpret},\cite{nsai}. NSAI enables robots to follow unconstrained natural language instructions for tasks like object picking, grasping, and multi-step manipulation such as pick-and-place or sorting~\cite{learning-neuro-symbolic}. Its architecture typically includes a hybrid scene encoder, neural language parser, reasoning/action primitives, symbolic program executor, and concept grounding modules. Language parsers translate instructions into executable symbolic programs, while scene encoders construct object-centric representations~\cite{enhancing-interpret},\cite{learning-neuro-symbolic}. Visual and spatial grounders match language concepts to objects, supporting generalization to unseen scenarios. Symbolic executors perform operations like filtering, querying, and executing manipulation actions~\cite{enhancing-interpret}, and simulators predict target locations for execution~\cite{learning-neuro-symbolic}. Training often uses weakly supervised, end-to-end curriculum learning with policy gradient methods~\cite{learning-neuro-symbolic},\cite{ns-vqa}. This modular design offers interpretability and enables interactive feedback. Challenges remain in integrating continuous neural models with discrete symbolic reasoning~\cite{nsai}, with future directions focusing on large language models for zero-shot parsing, vision-language models for grounding, and more complex logical structures for advanced planning~\cite{enhancing-interpret}.
+
+\newpage
+\section{Objectives}
+Drawing from the prior examination of robotic manipulation through natural language command systems, there are multiple challenges and limitations, such as generalization, lack of interpretability, and handling complexity, that pose room for improvements. Thus, the project aims to tackle and explore these challenges and limitations by building a prototype of a personal AI assistant with a robotic arm that can:
+\begin{enumerate}
+  \item Understand natural language voice commands
+
+  A primary challenge is enabling robots to effectively ground abstract semantic concepts in precise spatial reasoning from natural language. Current end-to-end neural networks, while capable of learning dexterous skills, often fail to generalize to new goals or quickly learn transferable concepts across tasks when confronted with language that introduces new concepts or slight variations (eg, distinguishing between "red pens" and "blue pens" without extensive new training data)~\cite{enhancing-interpret}. This highlights a core difficulty in how robots interpret the semantics underlying tasks from human instructions. Furthermore, past language-grounding methods for manipulation were often limited by object-centric representations and struggled to integrate perception and action cohesively based on linguistic input~\cite{cliport}. Overall, robots need to move beyond simple keyword recognition to a deeper, more generalizable understanding of human language in diverse, real-world contexts~\cite{enhancing-interpret},\cite{learning-neuro-symbolic}.
+
+  \item Translate commands into symbolic task sequences
+
+  Traditional Task and Motion Planning (TAMP) approaches specify tasks using formal representations like PDDL, but these require significant expertise and lack generalizability across different problems~\cite{code-as-symbolic-planner}. A promising solution involves neuro-symbolic AI, which combines the pattern recognition strengths of neural networks with the logical reasoning and structured knowledge of symbolic AI~\cite{nsai}. This hybrid approach allows for the explicit representation of the underlying reasoning process as symbolic programs, often using a Domain-Specific Language (DSL). Such disentanglement of perception (neural) from reasoning (symbolic) leads to systems that are more sample-efficient , can generalize to unseen concept-task combinations, and enable deeper, compositional, and hierarchical reasoning over abstract concepts derived from instructions~\cite{enhancing-interpret}. Recent advancements has highlighted an alternative approach by exploring guiding LLMs to directly generate code that serves as the robot's TAMP planner and checker , integrating symbolic computation into the planning process while maintaining broad generalizability~\cite{code-as-symbolic-planner}.
+
+  \item Detect, grasp, and deliver engineering tools safely to the user
+
+  Accomplishing this requires overcoming challenges in precise spatial reasoning and robust interaction with objects in dynamic, unstructured environments. Current systems, even those showing promise in semantic understanding, may still struggle with fine-grained manipulation that demands high spatial precision, such as handling deformable objects or specific placements. Generalization to novel object instances that were not part of training data remains a hurdle, with models sometimes exploiting biases rather than truly grounding instructions~\cite{cliport}. The process involves object detection, instance segmentation, and grasp synthesis to identify and physically interact with items~\cite{enhancing-interpret}. Furthermore, ensuring safety during physical interaction is paramount, requiring rigorous validation and addressing issues like collision avoidance and potential biases from pre-trained models that could lead to harmful actions. The "sim-to-real" gap also means that models trained in simulation may require substantial fine-tuning for robust real-world performance~\cite{enhancing-interpret},\cite{cliport}.
+
+  \item Provide interpretable task plans that users can inspect, adjust, or correct
+
+  This addresses the critical problem of "black box" AI, where purely neural systems lack transparency and the ability to explain their decisions. This opacity makes it challenging for non-expert users to diagnose and correct errors in a robot's behavior. Neuro-symbolic AI explicitly tackles this by disentangling reasoning from visual perception and language understanding, leading to fully transparent and interpretable reasoning processes. By generating explicit symbolic programs that represent the robot's plan as a sequence of logical steps, the system provides a formal, interpretable representation of its decision-making. This interpretability is crucial for human-in-the-loop interaction , allowing users to understand why a robot performs certain actions, inspect the generated task plans, and provide targeted feedback or corrections when a failure occurs. The ability to communicate about failures and ambiguities in a dialogue setting significantly enhances usability and trust in autonomous systems~\cite{enhancing-interpret},\cite{nsai}.
+\end{enumerate}
+
+\newpage
+\section{Literature Survey and Review}
+
+\subsection{Existing Solutions for Robot Manipulation through Natural Language Instructions}
+
+\subsubsection{Voice Control and Multimodal Speech Recognition for Robot Manipulation}
+
+Voice-based interaction has played a central role in enabling natural communication between humans and robots. Two key approaches that have been widely studied are \textbf{Voice Control Systems (VCS)} and \textbf{Automatic Speech Recognition (ASR)}, both of which contribute to making robot manipulation more intuitive and user-friendly.  
+
+\textbf{Traditional Voice Control Systems (VCS).}  
+VCS applications have demonstrated the potential of speech as a hands-free, natural interface in multiple domains~\cite{vcs}:  
+\begin{itemize}
+    \item \textbf{Early Childhood Education:} Speech-activated robotics systems enable children to communicate with robots through simple voice commands, fostering intuitive interaction.  
+    \item \textbf{Smart Home Automation:} By integrating IoT, Fog, and Cloud architectures with speech-to-text and text-to-speech systems, users can control lights and appliances through voice interfaces.  
+    \item \textbf{Assistance for Individuals with Disabilities:} Low-cost voice-based home automation solutions allow people with paraplegia or quadriplegia to control adjustable beds or other devices with simple commands.  
+    \item \textbf{Healthcare Applications:} Voice recognition on mobile devices helps medical staff record workflow milestones efficiently, reducing the burden of manual data entry.  
+    \item \textbf{Traffic Management:} Voice-controlled systems can adjust traffic signals based on simple commands such as ``red,'' ``green,'' or ``yellow.''  
+\end{itemize}  
+
+Despite their wide use, traditional VCS are typically limited to \textit{predefined tasks}. They struggle with grounding fine-grained concepts (e.g., color, material, or spatial relations), algorithmic reasoning (e.g., counting, comparing), and often function as black-box systems that require large datasets for training and lack interpretability~\cite{vcs}. Security and data privacy also remain ongoing concerns.  
+
+\textbf{Automatic Speech Recognition (ASR) and Multimodal ASR.}  
+To overcome these limitations, modern systems have moved toward \textbf{Automatic Speech Recognition (ASR)}, particularly \textbf{multimodal ASR}, which integrates both speech and visual context to improve accuracy in real-world, noisy environments~\cite{Chang2023}. This approach is better aligned with the conditions faced by physical robots that must interpret spoken rather than written instructions.  
+
+Key purposes and mechanisms of multimodal ASR include:  
+\begin{itemize}
+    \item \textbf{Addressing Input Gaps:} While many benchmarks assume text-based instructions, robots deployed in practice must process spoken commands. Multimodal ASR bridges this gap by converting speech into text~\cite{Chang2023}.  
+    \item \textbf{Reducing Recognition Errors:} Unlike unimodal ASR, which may misinterpret unclear words, multimodal ASR leverages accompanying visual information to resolve ambiguities~\cite{Chang2023}.  
+    \item \textbf{Example Scenario:} If a robot hears ``Put the egg in the \ldots'' but the final word is noisy, unimodal ASR might incorrectly guess ``fridge.'' Multimodal ASR, however, can use visual context (e.g., spotting a microwave nearby) to correctly infer ``microwave''~\cite{Chang2023}.  
+\end{itemize}  
+
+\textbf{Architecture of Multimodal ASR:}  
+\begin{itemize}
+    \item \textbf{Speech Encoding:} Spoken instructions are processed by a speech encoder (e.g., wav2vec 2.0) to extract meaningful features~\cite{Chang2023}.  
+    \item \textbf{Visual Encoding:} The robot’s current visual observation is processed by a visual encoder (e.g., CLIP-ViT) into a feature vector~\cite{Chang2023}.  
+    \item \textbf{Joint Decoding:} A Transformer-based decoder attends to both the speech and visual encodings, combining them to predict an accurate textual transcription of the spoken command~\cite{Chang2023}.  
+\end{itemize}  
+
+Together, VCS and multimodal ASR represent complementary solutions for enabling natural language robot manipulation. VCS laid the foundation for voice-driven interfaces in defined contexts, while multimodal ASR extends these capabilities to \textit{open, context-rich environments}, where accurate and adaptive interpretation of spoken instructions is crucial~\cite{vcs},\cite{Chang2023}.
+
+\subsubsection{Robot Planning}
+
+\textbf{CLIPORT} \\
+CLIPORT solves various language-specified tabletop tasks, including packing unseen objects and folding clothes. It supports precise manipulation, abstract reasoning, data-efficient few-shot learning, and generalization to seen and unseen concepts. A single multi-task policy handles 10 simulated and 9 real-world tasks, transferring attributes like “pink block” without explicit training. It grounds categories, shapes, and colors without bounding boxes, is less prone to overfitting, and has been validated on a real Franka Panda manipulator. However, it requires an expert to signal task completion, struggles with complex spatial relations, cannot count or maintain history, and grounds verb-noun phrases only within trained contexts. It lacks dexterous 6-DOF manipulation, continuous control, and robustness in partially observable scenes. Execution depends on accurate hand-eye calibration, with open-loop pick-and-place prone to failure if objects move. Grasping novel objects outside training distribution is limited, and biases from CLIP training data may introduce vulnerabilities~\cite{cliport}. \\ \\
+\textbf{Code as Policies (CaP)} \\
+CaP translates natural language commands into robot policy code, expressing functions, feedback loops, and parameterized control primitives. It supports spatial-geometric reasoning, precise value assignment, logic structures, and use of external libraries. It generates hierarchical, interpretable code without extra training, adapts to unseen instructions, and outperforms LLM-only reasoning on spatial tasks. CaP handles multilingual commands, emojis, and cross-embodiment tasks, demonstrated on shape drawing, pick-and-place, and mobile robots. Limitations include dependence on available perception APIs and control primitives, difficulty with long or abstract instructions, inability to ensure feasibility or correctness, and brittle cross-embodiment performance. Duplicate object identity may be lost, and complex continuous control can require manual tuning~\cite{code-as-policies}. \\ \\
+\textbf{Code-as-Symbolic-Planner} \\
+This method generates code serving as a Task and Motion Planning (TAMP) planner, integrating symbolic computation for efficient plan search and reasoning. It generalizes across discrete/continuous TAMP tasks, simulations, and real-world settings, outperforming other LLM-based planners and Code Interpreter. It incorporates commonsense reasoning, uses multi-round refinement, and supports multi-robot collaboration. Limitations include inconsistent initial code, suboptimal or time-exceeding solutions for complex tasks, risk of coding errors, assumptions of full environment knowledge, and reliance on manually defined functions for goal translation~\cite{code-as-symbolic-planner}. \\ \\
+\textbf{Neuro-symbolic Approach} \\
+Neuro-symbolic approaches in robot manipulation combine the strengths of neural networks for perception and language understanding with symbolic reasoning for task planning, enabling robots to interpret and execute unconstrained natural language commands for diverse and complex tasks such as grasping, pick-and-place, and multi-step assembly. A significant advantage is their interpretability, offering transparent reasoning processes that help users diagnose and correct robot errors through interactive feedback, or by reconstructing anticipated scene states. These systems demonstrate robust generalization capabilities, efficiently adapting to novel scenes, previously unseen vocabulary, varying object counts, and longer, more intricate multi-step instructions. This often requires minimal supervision, learning from only initial and final world states or through few-shot adaptation for new concepts and real-world transfer. However, a current limitation is their typical reliance on tasks decomposable into sequential primitive steps, with more complex logical structures like conditionals or loops posing a challenge for existing domain-specific languages.~\cite{enhancing-interpret},\cite{learning-neuro-symbolic}. \\ \\
+\textbf{HyCodePolicy} \\
+HyCodePolicy interprets high-level natural language instructions for robot manipulation, decomposing them into hierarchical subgoals and synthesizing executable Python programs grounded in object-centric geometric primitives. Programs are executed in simulation with a vision-language model monitoring checkpoints to identify, localize, and infer causes of failures. The system pinpoints root causes, applies targeted code repairs using execution logs and perceptual feedback, and enables self-correcting program synthesis with minimal human intervention. Generated code is treated as an evolving hypothesis, validated and corrected iteratively, enhancing robustness and sample efficiency. HyCodePolicy demonstrates strong zero-shot generalization across structured placement, stacking, and planar manipulation tasks. However, it struggles with articulated object manipulation, fine-grained parameter adjustments, deformable object dynamics, and tasks requiring precise arm poses, granular spatial understanding, or complex temporal reasoning~\cite{hycodepolicy}. \\ \\
+\textbf{LLM-use-API (AuDeRe)} \\
+LLM-use-API (AuDeRe) selects appropriate motion planning and control algorithms from natural language task descriptions, environmental constraints, and robot dynamics. Rather than generating trajectories or code directly, it invokes comprehensive planning and control APIs tailored to these insights. It employs iterative LLM-based reasoning with performance feedback to refine algorithm selection and execution, generating high-level execution plans that describe API interactions, input/output relations, and data compatibility. This approach enhances autonomy, reduces manual tuning and expert intervention, generalizes across tasks from tracking to spatiotemporal planning, and consistently outperforms direct trajectory or code generation in success rates, query efficiency, and error reduction. Limitations include the non-triviality of direct API invocation, which requires integration code for compatibility. Performance degrades with higher LLM temperatures, larger models increase runtimes, and errors such as syntax, timeouts, and task failures can still occur despite reductions~\cite{audere}.
+
+\subsection{Existing Technology for Robot Manipulation through Natural Language Instructions}
+
+\subsubsection{Voice Control and Multimodal Speech Recognition for Robot Manipulation}
+
+Voice Control Systems (VCS) have transformed human-computer interaction by enabling intuitive, hands-free communication through natural language commands. Traditionally, VCS relies on Automatic Speech Recognition (ASR) to transcribe speech into text and Natural Language Processing (NLP) to interpret and execute instructions. These systems are widely used in digital assistants, smart homes, and IoT devices, enhancing accessibility, convenience, and efficiency in everyday tasks. In robotics, VCS lowers barriers to interaction by allowing users, including children and individuals with limited mobility, to control robots naturally through speech~\cite{vcs}. Despite these advantages, traditional ASR systems remain limited in noisy, ambiguous, or dynamic environments. They often struggle with fine-grained contextual information or visually grounded references, which are critical for successful robot manipulation. To address these challenges, multimodal ASR has emerged as an extension of VCS, incorporating both speech signals and visual context to ground linguistic input in the robot’s perceptual environment~\cite{Chang2023},\cite{multi}.
+
+\textbf{Core Architecture of Multimodal ASR:}
+\begin{itemize}
+    \item \textbf{Speech Encoder:} Extracts audio features from spoken instructions, often using pre-trained models such as wav2vec 2.0.
+    \item \textbf{Visual Encoder:} Processes visual observations from the robot’s environment (e.g., CLIP-ViT).
+    \item \textbf{Language Decoder:} A Transformer-based decoder that jointly attends to both speech and visual features to generate accurate transcriptions.
+\end{itemize}
+
+By combining speech with visual context, multimodal ASR achieves higher transcription accuracy, especially for visually salient words such as object names or spatial instructions. It also improves task success rates by reducing errors from misheard commands and generalizes better across new environments and diverse speakers. Benchmarks such as ALFRED have demonstrated that multimodal ASR enables robots to more reliably follow natural language instructions in simulated household environments~\cite{vcs},\cite{Chang2023},\cite{multi}. By uniting the accessibility of traditional VCS with the robustness of multimodal ASR, robots gain the ability to interpret and execute commands more effectively in uncertain and dynamic conditions. This evolution marks a critical step toward human-robot interaction that is both natural and contextually grounded~\cite{vcs},\cite{Chang2023},\cite{multi}.
+
+\subsubsection{Robot Planning}
+
+Robot manipulation tasks, particularly in unstructured human environments, necessitate that robots can understand and execute natural language instructions from non-expert users~\cite{cliport}. Historically, robot planning relied on segregated high-level artificial intelligence (AI) task planning and low-level motion planning, with traditional methods often using hand-coded symbols or relying on strict hierarchical decompositions~\cite{learning-neuro-symbolic},\cite{code-as-symbolic-planner}. However, these approaches struggled to effectively combine discrete task decisions with continuous geometric and kinematic considerations, limiting their applicability in dynamic, human-centric settings~\cite{cliport},\cite{code-as-symbolic-planner}.
+Recent advancements have led to diverse implementations and approaches, broadly categorized as:
+
+\begin{enumerate}[label=\Roman*.]
+    \item \textbf{Traditional / Early Language Grounding} \\
+Traditional methods typically map natural language phrases to pre-defined symbolic representations of robot states and actions, assuming a symbolic description of the environment and actions. They often rely on symbols hand-coded by domain experts~\cite{optimizatoin-and-motion-planning} or logical parses that translate language into motion constraints or control actions, and generally lack the flexibility to autonomously learn task semantics~\cite{learning-neuro-symbolic}. While these methods provide clear symbolic interpretability, they are inherently limited in their generalizability—new goals (e.g., switching from red pens to blue pens) require new training or explicit user input~\cite{ns-vqa}.
+
+Interpretability is high since the reasoning is explicit and symbolic, but they often fail to integrate discrete task planning with continuous motion feasibility~\cite{tamp}, restricting use in dynamic, real-world settings. Data efficiency is poor, as pre-annotated datasets are needed to map phrases to symbols. Additionally, scalability is limited since symbolic operators are predefined, and the frameworks cannot easily adapt to unseen tasks.
+
+    \item \textbf{Language-Conditioned End-to-End Systems (e.g., CLIPORT)} \\
+These systems combine large-scale pre-trained vision-language models (like CLIP, for broad semantic grounding—the “what”) with architectures specialized for spatial precision (like Transporter—the “where”). Transporter Networks are highly sample-efficient, end-to-end models for robotic manipulation that avoid object-centric assumptions, exploiting spatial symmetries and generalizing well to unseen objects and configurations~\cite{transporter}. CLIPORT builds on this by integrating language-conditioned policies and semantic understanding via a two-stream design, enabling grounding of categories, shapes, colors, and text attributes without requiring hand-designed perception pipelines. They show strong data efficiency, can learn multi-task policies, and generalize across seen and unseen semantic concepts, transferring learned attributes to new tasks~\cite{cliport}.
+
+However, challenges remain. CLIPORT struggles with fine-grained reasoning about relationships (e.g., “middle square hole” with unseen shapes), counting, or verb-noun generalization beyond training data. Its execution is limited to open-loop pick-and-place primitives, making it brittle in dynamic or dexterous tasks. Interpretability is partial: while the semantic prior is clear, the underlying reasoning process remains mostly opaque. Calibration errors or biases in training data can degrade performance, and extending to high-DOF manipulation is non-trivial~\cite{cliport}.
+
+    \item \textbf{Neuro-Symbolic Approaches} \\
+Neuro-symbolic methods integrate neural perception modules with symbolic reasoning engines. They often translate natural language into executable symbolic programs composed of both neural (e.g., visual grounding) and symbolic (e.g., counting, logic) primitives. This enables them to combine robust perception with transparent, structured reasoning. Examples include the DeepSym framework for autonomously discovering symbols, neurosymbolic architectures for coupling vision and reasoning, and program-generating models for manipulation~\cite{nsai}.
+
+NSAI systems enhance interpretability, robustness, and trustworthiness, while also facilitating learning from less data. By disentangling perception and language understanding (neural) from reasoning (symbolic), neurosymbolic systems offer a formal, interpretable representation of the underlying reasoning process~\cite{enhancing-interpret}. They are also highly sample-efficient, capable of learning from weak or “natural” supervision (initial/final states rather than dense annotations)~\cite{nsai},\cite{learning-neuro-symbolic}.
+
+However, limitations include reliance on fixed domain-specific languages (limiting concept coverage), susceptibility to perception errors in cluttered scenes, and difficulty scaling to more complex logic (loops, conditionals)~\cite{enhancing-interpret},\cite{learning-neuro-symbolic}. Integration of neural and symbolic modules introduces computational challenges such as state-space explosion and longer training times, and standardization across frameworks remains an open problem~\cite{nsai}.
+
+    \item \textbf{Large Language Model (LLM)-Based Approaches} \\
+LLM-based methods leverage the broad commonsense reasoning of large pre-trained language models for robot planning. Some approaches map natural language into symbolic planning representations (e.g., Text2Motion~\cite{text-2-motion}), while others use LLMs to choose from pre-defined primitives (e.g., Code-as-Policies~\cite{code-as-policies}). A recent paradigm, Code-as-Symbolic-Planner, queries the LLM to generate executable code that acts as both the planner and verifier, explicitly integrating symbolic computation~\cite{code-as-symbolic-planner}.
+
+Their generalization is strong due to pretraining on vast text/code datasets. LLMs provide natural language transparency and can even generate interpretable code that reflects explicit reasoning chains~\cite{code-as-symbolic-planner},\cite{code-as-policies}. Data efficiency benefits from pretraining, though TAMP-specific fine-tuning or self-checking guidance frameworks are often required~\cite{plangenllm}.
+
+However, challenges include brittleness in complex optimization scenarios, inconsistency in generated code, and performance degradation with increasing task complexity. Earlier LLM methods that lacked symbolic computation were unreliable for tasks with numeric constraints~\cite{code-as-symbolic-planner}. Even with code generation, outputs may be suboptimal or erroneous, requiring iterative refinement. Furthermore, real-world translation of problems into solvable code remains difficult, and generated code can introduce execution risks~\cite{plangenllm}.
+\end{enumerate}
+
+\subsection{Conclusion}
+The field of robot manipulation and planning through natural language is moving towards the main goal of enabling robots to seamlessly translate human intent into precise, executable actions. Current progress demonstrates the promise of LLMs and MLLMs in bridging abstract linguistic instructions with the concrete demands of real-world robotics. By combining high-level semantic understanding with fine-grained spatial reasoning, generating interpretable code as flexible policies, and leveraging neuro-symbolic reasoning for systematic generalization, researchers are building the foundations for robots that can adapt to diverse tasks and environments. These approaches, when coupled with modular design and iterative feedback loops, highlight a path toward truly intelligent and collaborative robotic assistants.
+
+For this project, we aim to contribute to this progress by addressing some of the key limitations in the field. In particular, we will explore extending manipulation capabilities toward more complex object handling based on high-level commands, while also investigating methods for improving robustness and adaptability under real-world uncertainty. We see opportunities in integrating neural and symbolic reasoning, advancing perception systems for richer grounding, and experimenting with human-in-the-loop strategies for preference alignment and safe deployment. By targeting these areas, We hope to push the field closer to building robots that are not only capable and efficient but also trustworthy collaborators in human-centered environments.
+
+\newpage
+\section{Project Concept Development with Core Technology}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/Sytem_Architecture_Overview.png}
+    \caption{System Architecture Overview}
+    \label{fig: architecture overview}
+\end{figure}
+
+The project combines:
+\begin{itemize}
+    \item \textbf{Neural AI}: Object detection, segmentation, grasp synthesis, automatic speech recognition, and natural language understanding.
+    \item \textbf{Symbolic AI}: Explicit reasoning over tasks with preconditions and effects. Constraints enforcement to ensure executability.
+    \item \textbf{Robotics}: A robot arm with a gripper executing precise manipulation under safe handover protocols. 
+\end{itemize}
+This neuro-symbolic hybrid design ensures adaptability, efficiency, and user transparency. \\
+
+\textbf{\underline{Overall Workflow:}}
+\begin{enumerate}
+    \item Users instruct the robot through high level, natural language, vocal commands.
+    \item The vocal command is converted into text using Automatic Speech Recognition (ASR) pipeline.
+    \item Semantics and discrete concepts are extracted from the text commands using Natural Language Understanding (NLP) techniques, resulting in a latent representation (for symbolic processing) and a detailed description (for LLMs).
+    \item The current state of the work area is perceived through a camera.
+    \item The live visual feed is processed by applying object detection, segmentation, grasp synthesis, and visual understanding, resulting in a latent representation (for symbolic processing) and a detailed description (for LLMs).
+    \item The main algorithm plans and generates the program for the robot arm to execute. This could involve multiple techniques and technologies, such as the use of LLM, Multi-agent system, and PDDL, depending on the latent representation and architecture.
+    \item The generated program is analyzed symbolically to ensure executability.
+    \item The user can confirm, reject, or adjust the program proposed by the algorithm. Creating a closed-loop feedback system that allows more control.
+    \item Once a program is approved by the user, the robot arm executes the program.
+
+\end{enumerate}
+
+\newpage
+\section{Project Planning}
+The project is structured around four primary technical area of concentration exluding any relevant paperwork tasks. These align seamlessly with the core enhancements, which will all be implemented in parallel: \textbf{image processing, speech processing, planning algorithms, and robotic arm integration}.  The planned timeline is structured into weekly milestones to ensure iterative progress and early validation 
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{images/Gantt_chart(2).png}
+    \caption{A proposed project timeline scheduled for the project’s implementation in this semester}
+    \label{fig:gantt-chart}
+\end{figure}
+
+\subsection{Image Processing}
+[2 Weeks] Research on image processing techniques 
+\begin{itemize}
+    \item A literature review and exploration of existing approaches will be conducted to identify suitable image processing methods for robotic applications.
+\end{itemize}
+[1 Week] Select best implementation method
+\begin{itemize}
+    \item Based on the research findings, the team will decide on the most promising method to pursue further development.
+\end{itemize}
+[4 Weeks] Implementation
+\begin{itemize}
+    \item The chosen method will be implemented, with iterative testing to verify accuracy, robustness, and suitability for integration with the robot system.
+\end{itemize}
+[8 Weeks] Integration
+\begin{itemize}
+    \item The implemented solution will be connected to the overall system, ensuring compatibility and real-time performance with the robotic platform.
+\end{itemize}
+\subsection{Speech Processing}
+[3 Weeks] Research on speech processing techniques
+\begin{itemize}
+    \item A comprehensive study on speech-to-command systems will be carried out to identify feasible methods for tool-handling tasks.
+\end{itemize}
+[1 Week] Select best implementation method
+\begin{itemize}
+    \item The most effective speech processing model or framework will be selected after evaluating feasibility, latency, and accuracy.
+\end{itemize}
+[5 Weeks] Implementation
+\begin{itemize}
+    \item The selected method will be developed into a working module, with error handling and adaptability to diverse inputs.
+\end{itemize}
+[5 Weeks] Integration
+\begin{itemize}
+    \item The module will be integrated into the robot system to ensure smooth operation, including communication between the speech module and task-planning system.
+\end{itemize}
+\subsection{Planning Algorithm}
+[3 Weeks] Research on techniques and architectures
+\begin{itemize}
+    \item A review of different approaches and existing planning algorithms will be conducted to identify suitable architectures.
+\end{itemize}
+[1 Weeks] Select best implementation method
+\begin{itemize}
+    \item Candidate techniques will be compared, and the optimal method will be chosen for development.
+\end{itemize}
+[5 Weeks] Implementation
+\begin{itemize}
+    \item The selected approach will be implemented with an emphasis on ensuring symbolic reasoning and adaptability to real-world tasks.
+\end{itemize}
+[5 Weeks] Integration
+\begin{itemize}
+    \item The algorithm will be integrated into the system to handle planning tasks, translating perception (image/speech) into robotic execution commands.
+\end{itemize}
+\subsection{Interface with Robot Arm}
+[5 Weeks] Develop library for interfacing with UR Arm
+\begin{itemize}
+    \item A dedicated library will be created to enable seamless communication with the UR robotic arm.
+\end{itemize}
+[10 Weeks] Simulation
+\begin{itemize}
+    \item Virtual simulations will be performed to verify system stability and safety before real-world trials.
+\end{itemize}
+[5 Weeks] Integrate other hardware with UR Arm
+\begin{itemize}
+    \item Additional supporting hardware will be tested and interfaced to ensure full robotic tool-handling capabilities.
+\end{itemize}
+[2\textsuperscript{nd} semester] Actual implementation
+\begin{itemize}
+    \item The final robotic interface will be tested and deployed on the physical UR Arm, completing the integration.
+\end{itemize}
+
+
+\newpage
+\section{Theory and Technical Backup}
+
+\subsection{Voice Control Systems (VCS)}
+Voice control systems have significantly transformed human-computer interaction by enabling users to interact with interfaces using voice commands and natural language. These systems leverage automatic speech recognition (ASR) to convert voice recordings into text, and advancements in deep learning have greatly enhanced their capabilities, alongside natural language processing. VCS offers numerous benefits, including saving users time and resources by providing quick services through an efficient interface without requiring extensive additional devices. They foster natural voice communication between users and devices, enhancing user comfort and creating a more intuitive interface. The adoption rate of voice-activated digital assistants has increased substantially, leading to a wide array of Internet of Things (IoT) devices incorporating voice-activated user interfaces for tasks ranging from creating grocery lists to controlling smart homes. Beyond smart gadgets and IoT, VCS technology is also applied in automotive systems to prevent accidents by allowing drivers to focus on their surroundings. VCS significantly improves the quality of life for various groups, including elderly people, children under four, and individuals with physical disabilities. They can provide complete control over home or office appliances, facilitate traffic regulation, and enhance healthcare systems~\cite{vcs}.
+
+\subsection{Multimodal Automatic Speech Recognition}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{asr}
+    \caption{Multimodal ASR model architecture.
+    (from~\cite{Chang2023})}
+    \label{fig:asr}
+\end{figure}
+
+Multimodal Automatic Speech Recognition (ASR) enhances speech transcription by integrating visual context alongside audio signals, which is crucial for tasks such as embodied agents and human-robot interaction. By leveraging both modalities, multimodal ASR improves robustness and accuracy over traditional unimodal systems, achieving lower Word Error Rate (WER) and higher Recovery Rate (RR), especially under noisy or masked audio conditions. It is particularly effective at recovering visually salient words, such as object names, thereby increasing task completion rates in instruction-following scenarios~\cite{Chang2023},\cite{multi}.
+
+Typical architectures combine a speech encoder, such as wav2vec 2.0, with a visual encoder, often based on CLIP-ViT, feeding both into a Transformer-based decoder that attends jointly to audio and visual features. Unlike unimodal ASR, which relies only on speech input, multimodal ASR grounds transcription in environmental context, reducing ambiguity and improving generalization to unseen speakers and settings~\cite{Chang2023},\cite{multi}.
+
+Applications include benchmarks like ALFRED, where agents must interpret spoken instructions to navigate and manipulate objects, as well as real-world human-robot communication. Compared with unimodal baselines, multimodal ASR achieves superior masked word recovery (up to 30\% more) and mitigates performance degradation in noisy conditions~\cite{Chang2023},\cite{multi}. Challenges remain regarding generalization to real-world environments, as many studies rely on synthetic data and simplified noise models.
+
+\subsection{Neuro-Symbolic Artificial Intelligence (NSAI)}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{nsai-types}
+    \caption{Neuro-Symbolic AI types
+    (from~\cite{nsai})}
+    \label{fig:nsai-types}
+\end{figure}
+
+Neuro-Symbolic Artificial Intelligence (NSAI) is an emerging paradigm that combines the strengths of neural networks with symbolic reasoning. Neural networks excel in pattern recognition and data-driven learning but often lack explainability and explicit reasoning capabilities, operating as "black boxes". In contrast, symbolic AI is inherently interpretable and excels in logical reasoning but struggles with perception from raw data and requires extensive manual knowledge engineering. NSAI aims to bridge these gaps by integrating the robust statistical learning of neural networks with the structured knowledge and logic of symbolic AI, enabling systems to reason, make decisions, and generalize knowledge more effectively from large datasets. This hybrid approach enhances interpretability, robustness, and trustworthiness, while also facilitating learning from less data~\cite{nsai}.\\
+NSAI systems can be categorized into various architectures based on the connection between their neural and symbolic components, as shown in Figure~\ref{fig:nsai-types}. These include:
+\begin{itemize}
+
+    \item \textbf{Symbolic Wrapper (Type 1)}: Symbolic systems guide both input and output, leveraging neural networks internally for data-driven learning (e.g., DeepProbLog, Neuro-Symbolic Concept Learner (NSCL), hybrid neuro-symbolic robotics).
+
+    \item \textbf{Symbolic [Neuro] (Type 2)}: Symbolic systems dominate, with neural modules used internally for perception and pattern recognition (e.g., in autonomous communication or scene interpretation).
+
+    \item \textbf{Bidirectional Interaction (Type 3)}: Neural and symbolic components tightly interact, with neural models adjusting outputs based on symbolic constraints and symbolic modules evolving reasoning based on neural feedback (e.g., AlphaGo, AlphaZero, in robotics).
+
+    \item \textbf{Sequential Connection (Type 4)}: Neural networks connect sequentially to symbolic systems via an explicit mapping layer, converting continuous neural outputs into structured symbolic knowledge (e.g., Neural Symbolic Machines (NSM)).
+
+    \item \textbf{Embedded Symbolic Information (Type 5)}: Symbolic information is directly embedded into tensor representations, enhancing neural network reasoning in a differentiable manner (e.g., Logic Tensor Networks (LTNs)).
+
+    \item \textbf{Deeply Integrated (Type 6)}: Symbolic structures are directly processed by neural networks, blending symbolic reasoning and neural computation seamlessly (e.g., Neural Theorem Provers (NTP), Graph Neural Networks (GNNs)).
+\end{itemize}
+
+\subsection{Large Language Model (LLM)}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\linewidth]{transformer}
+    \caption{The Transformer-model architecture
+    (from~\cite{attention-is-all-you-need})}
+    \label{fig:transformer}
+\end{figure}
+
+Large Language Models (LLMs), such as BERT and GPT-5, are pretrained neural networks that serve as powerful foundation models for language understanding and generation. They build on the Transformer architecture, shown in Figure~\ref{fig:transformer}, a sequence model that relies entirely on attention mechanisms and avoids recurrence or convolutions. The Transformer employs an encoder-decoder structure with stacked layers of multi-head self-attention and feed-forward networks, enabling the model to relate different positions within a sequence and capture diverse representation subspaces. Positional encodings are added to input embeddings to provide information about token order~\cite{attention-is-all-you-need}. LLMs represent words as vectors and acquire robust language and world knowledge through large-scale self-supervised learning, such as predicting masked words or the next word in a sequence. These models excel at tasks including machine translation, question answering, text classification, and text generation, leveraging vast amounts of text data to learn meanings and factual knowledge. Despite their capabilities, LLMs have limitations in deep understanding, reasoning, and completeness of knowledge, and raise societal concerns regarding bias and centralized model control~\cite{human-language-understanding}.
+
+The reason why it is preferred over traditional Natural Language Processing (NLP) models is due to
+the impressive ability to grasp broad contexts with little to no training. Mostly outperforms various
+Natural Language Processing (NLP) techniques without having to fine-tune with execution cost.
+Among the algorithms capable of handling a range of Natural Language Processing tasks, Large
+Language Model (LLM) has not only frequently appeared in numerous past studies but has also
+showcased immense potential for generating plans, transforming an initial world state into a desired state~\cite{plangenllm}.
+
+\subsection{Hierarchical Reasoning Model (HRM)}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/hrm-arch.png}
+    \caption{Hierarchical Reasoning Model Architecture Inspired by the Brain (from~\cite{hrm})}
+    \label{fig:hrm-archictecture}
+\end{figure}
+
+The Hierarchical Reasoning Model (HRM) is a brain-inspired neural architecture designed to overcome the limitations of current Large Language Models (LLMs) in reasoning tasks. Whereas LLMs rely heavily on Chain-of-Thought (CoT) prompting, which breaks problems into text-based intermediate steps that are brittle, slow, and data-hungry, HRM performs reasoning entirely in its hidden state space. The model employs two recurrent modules operating at different timescales: a high-level module that conducts slow, abstract planning, and a low-level module that executes fast, detailed computations, as shown in Figure~\ref{fig:hrm-archictecture}. This division enables HRM to achieve substantial computational depth in a single forward pass, avoiding the premature convergence and training instability typical of recurrent networks. To further improve efficiency, HRM introduces a one-step gradient approximation, bypassing the heavy memory requirements of Backpropagation Through Time (BPTT) while maintaining stable learning dynamics~\cite{hrm}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{images/hrm-bench.png}
+    \caption{Hierarchical Reasoning Model Performances on Complex Benchmarks (from~\cite{hrm})}
+    \label{fig:hrm-results}
+\end{figure}
+
+With only 27 million parameters and training on just 1,000 examples per task, HRM attains near-perfect performance on complex benchmarks such as Sudoku-Extreme and Maze-Hard, where state-of-the-art CoT-based LLMs fail entirely. It also surpasses much larger models on the Abstraction and Reasoning Corpus (ARC), a benchmark widely regarded as a measure of general reasoning ability, as shown in Figure~\ref{fig:hrm-results}. Notably, HRM achieves this without pre-training or access to CoT data, demonstrating strong sample efficiency and scalability. By integrating principles of hierarchical processing, temporal separation, and recurrent refinement—mirroring neural mechanisms in the brain—HRM represents a promising step toward universal computation and general-purpose reasoning systems that go beyond the shallow reasoning capacity of today’s LLMs~\cite{hrm}.
+
+\subsection{Vision Language Model (VLM)}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{images/vlm-structure.png}
+    \caption{Structure of a Typical Vision Language Model (from~\cite{huggingface_vlms_2024})}
+    \label{fig:vlm-structure}
+\end{figure}
+
+Vision Language Models (VLMs) are multimodal generative AI models that combine image and text understanding to perform a wide range of tasks, including visual question answering, image captioning, document analysis, and instruction-based image recognition. Many VLMs can also reason about spatial relationships in images, producing outputs like bounding boxes or segmentation masks. Architecturally, they usually consist of an image encoder, a projection layer that aligns image and text embeddings, and a text decoder for generating output, as shown in Figure~\ref{fig:vlm-structure}. Popular open-source VLMs include LLaVA, KOSMOS-2, Qwen-VL, CogVLM, and Fuyu-8B, each varying in model size, supported features such as chat or grounding, and image resolution~\cite{huggingface_vlms_2024}.
+
+VLMs are powerful in zero-shot generalization, allowing them to handle unseen images and prompts without additional training. Furthermore, fine-tuning allows adaptation to specialized applications, such as educational tools, interactive assistants, or automated document evaluation. Their limitations include susceptibility to hallucinations, biases from training data, and high computational requirements for end-to-end training or large models~\cite{huggingface_vlms_2024}.
+
+\subsection{Planning Domain Definition Language (PDDL)}
+Planning Domain Definition Language (PDDL) is a standardized language for modeling automated planning problems in artificial intelligence. It separates a domain (the rules of the world: types, predicates, and actions) from a problem (a specific initial state and goal). PDDL allows users to specify objects, predicates, actions, and goals in a structured way, enabling automated planners to generate sequences of actions that achieve desired outcomes. However, PDDL is deliberately neutral: it encodes the physics of a domain without embedding heuristics or solving strategies, meaning many planners only support subsets of the language~\cite{pddl-1.2}.
+
+A classic illustration is the Briefcase World. Here, moving the briefcase also moves everything inside it, while objects can be put in or taken out. Below, the domain defines actions and the problem specifies the goal of moving a dictionary and briefcase to the office while leaving a paycheck at home:
+
+\begin{lstlisting}[language=PDDL]
+(define (domain briefcase-world)
+  (:requirements :strips :typing :conditional-effects)
+  (:types location physob)
+  (:constants B - physob)
+  (:predicates (at ?x - physob ?l - location) (in ?x ?y - physob))
+  (:action mov-b
+    :parameters (?m ?l - location)
+    :precondition (and (at B ?m) (not (= ?m ?l)))
+    :effect (and (at B ?l) (not (at B ?m))
+                 (forall (?z)
+                   (when (and (in ?z) (not (= ?z B)))
+                     (and (at ?z ?l) (not (at ?z ?m)))))))))
+  (:action put-in
+    :parameters (?x - physob ?l - location)
+    :precondition (not (= ?x B))
+    :effect (when (and (at ?x ?l) (at B ?l))
+                  (in ?x)))
+  (:action take-out
+    :parameters (?x - physob)
+    :precondition (not (= ?x B))
+    :effect (not (in ?x)))
+                     
+(define (problem get-paid)
+  (:domain briefcase-world)
+  (:init (place home) (place office)
+         (object p) (object d) (object b)
+         (at B home) (at P home) (at D home) (in P))
+  (:goal (and (at B office) (at D office) (at P home))))
+
+\end{lstlisting}
+
+PDDL has evolved from its early versions, like PDDL 1.2, which used predicate logic with true/false properties and actions, to more expressive forms. PDDL 2.1 introduced durative actions and numeric fluents for modeling time and resources, while PDDL 2.2 added derived predicates and timed literals. PDDL 3.0 incorporated soft constraints and preferences with costs, and PDDL+ enabled modeling of processes and uncontrollable events. Specialized variants such as PPDDL, NDDL, and MADDL were later developed for domain-specific planning needs~\cite{pddl}.
+
+\subsection{Artificial Intelligence in Image Processing}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{images/CNN.png}
+    \caption{Convolutional Neural Network (CNN) Architecture for Image Classification}
+    \label{fig:cnn}
+\end{figure}
+
+Artificial Intelligence (AI) has significantly transformed image processing, introducing cutting-edge methods and applications that streamline processes for enhanced speed and accuracy. Image processing itself involves understanding digital images as pixel-based visual information, along with various formats (e.g., JPEG, PNG), enhancement techniques (such as adjusting brightness or reducing noise), and filtering/restoration procedures. Within this framework, AI, especially through deep learning architectures like Convolutional Neural Networks (CNNs) and Generative Adversarial Networks (GANs), enables systems to extract crucial features, recognize objects, segment images, and even generate realistic visual content. This capability allows robots to interpret visual information similarly to humans, finding practical uses in areas like autonomous vehicles for navigation and surveillance systems for security~\cite{ai-in-image-processing}.
+
+The capabilities of AI image processing are broad and impactful, including accuracy enhancements, efficiency improvements, and the capacity to manage large datasets. AI has demonstrated significant success in improving diagnostic accuracy and early disease detection in healthcare, optimizing industrial packing strategies for greater efficiency and reduced waste, and enabling real-time applications and deployment on devices with limited resources through crucial optimization techniques like model compression. Advanced functions such as object detection, image segmentation, and content-based image retrieval are also facilitated by these methods. Despite these advantages, the application of AI in image processing faces notable limitations and ethical challenges. These include critical concerns regarding data privacy, interpretability of AI decisions, and the potential for biases embedded in training data to produce prejudiced results. Therefore, ensuring responsible, transparent AI systems that respect cultural diversity and address potential impacts on employment are vital for the technology's continued development~\cite{ai-in-image-processing}.
+
+\subsection{Universal Robots Arm (UR ARM)}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{images/UR_Arm_pic.png}
+    \caption{the Move Screen interface of a Universal Robots (UR) robotic arm's ~\cite{urarm}}
+    \label{fig:urarm}
+\end{figure}
+
+The Universal Robots (UR) robotic arm is a widely adopted collaborative robotic manipulator (cobot) designed for flexible deployment in industrial, engineering, and research settings. Unlike traditional industrial robots, UR arms are specifically engineered to operate safely alongside humans without requiring extensive physical barriers, thanks to their integrated safety features, lightweight design, and force-limiting mechanisms. These properties make UR arms particularly suitable for human-robot collaboration in dynamic environments such as manufacturing, assembly, and tool-handling applications.
+From a technical perspective, UR arms employ high-precision servo motors and torque sensors at each joint, enabling six degrees of freedom for dexterous manipulation tasks. Their kinematic flexibility allows execution of both structured and unstructured manipulation tasks, such as grasping, tool usage, and assembly operations. Additionally, UR arms are equipped with programmable interfaces, including graphical user interfaces (GUI), teach pendants, and increasingly, APIs compatible with external AI systems~\cite{urarm}. This enables integration with higher-level control architectures, such as neuro-symbolic AI (NSAI) or large language models (LLMs), for advanced planning, reasoning, and adaptive execution.
+
+
+\newpage
+\section{Project Outcome}
+
+By the deadline of this project , there will be a detailed report documenting how the proposed AI robot arm planning approach performs on the TASK and Motion Planning (TAMP) benchmarks, compared to other baseline solutions. This report will highlight the assistant's strength in combining voice-command understanding, image-processing, and robotic manipulation for engineering tool-handling task.
+
+Accompanying the project is a robotic prototype built on a UR5e robotic arm equipped with a parallel gripper. The robot is connected to a workstation running for UR Arm Library, which serves as the central processing unit, integrating both perception and planning modules. Through this workstation, the robot interfaces with:
+
+\begin{itemize}
+    \item \textbf{Camera}:A depth camera for real-time object recognition and workspace mapping.
+    \item \textbf{Microphone}: A input with ASR(Automatic Speech Recognition) pipeline for natural voice-command input.
+    \item \textbf{Robotics}: Motion controllers for safe execution of grasping and tool-passing tasks. 
+\end{itemize}
+
+With these specifications, the prototype is expected to demonstrate the following core capabilities:
+
+\subsection{Autonomous Planning:}
+
+The robot should be able to decompose natural voice instructions (e.g., “pass me the wrench, then place the screwdriver on the table”) into a symbolic task plan and execute it.
+
+\subsubsection{Path and Motion Safety}
+The robot should plan trajectories that are collision-free, navigating cluttered tool-workspaces without endangering users or damaging objects.
+
+\subsubsection{Generalization:} The assistant should adapt to unseen scenarios, such as handling tools of unfamiliar shapes or working in rearranged environments, while maintaining performance targets of more than 70 \% sequence correctness and 85 \% collision-free trajectories in simulation when executing TAMP tasks~\cite{tamp}
+
+\subsubsection{Human Collaboration:} The robot must safely pass tools to human collaborators by respecting dynamic human safety zones, pausing or re-planning if a human unexpectedly enters its workspace.
+
+Overall, at the surface level, the outcome of this project will be a robot arm assistant capable of autonomously planning and executing tool-handling tasks in engineering workshop scenarios. On a deeper level, this project demonstrates how combining neural and symbolic AI can produce robots that reason about complex tasks, adapt to novel environments, and safely interact with humans. In the long run, this prototype serves as a foundation for intelligent robotic assistants in manufacturing, laboratories, and educational workshops, showing how autonomous planning can be extended from research into real-world engineering applications.
+
+\newpage
+\section{Summary and Benefit to Real Industry}
+
+This project aims to build a prototype of a robotic planning assistant that integrates Large Language Models (LLMs) with symbolic reasoning for tool-handling in engineering environments. The LLM is responsible for translating natural language instructions into multi-step task plans, while Symbolic AI serves as a verification layer, checking for correctness and preventing unsafe or hallucinated actions. The prototype will serve as a proof of concept for how hybrid planning architectures can enable safe, interpretable, and adaptable robotic assistants in industrial settings.
+
+As noted in recent studies~\cite{enhancing-interpret},\cite{learning-neuro-symbolic},\cite{code-as-symbolic-planner},\cite{code-as-policies}, LLMs have demonstrated strong capabilities in task decomposition, code generation, and multimodal integration, while symbolic systems contribute precision, interpretability, and logical consistency ~\cite{code-as-symbolic-planner}. Combining these approaches enhances reliability and operator trust, allowing robots to adapt to unseen scenarios while remaining verifiable.
+
+The expected outcome is a system that reduces downtime, improves safety, and supports human-robot collaboration by enabling robots to be re-tasked directly from natural language instructions without extensive retraining. If successful, this approach can extend beyond tool-handling to applications in \textbf{manufacturing, construction, healthcare, and hazardous environments}, offering a scalable framework for safe and efficient robotic deployment across industries.
+
+\newpage
+\section{Roles and Responsibilities}
+
+{
+\renewcommand{\arraystretch}{1.3} % 1.3x default row height
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|l|p{6cm}|l|}
+        \hline
+        \textbf{Project Task} & \textbf{Task Description} & \textbf{Assigned to} \\
+        \hline
+        Planning Algorithm & Research architectures, select method, implement, and integrate neuro-symbolic planning algorithm & Kanisorn Sangchai \\
+        \hline
+        Image Processing & Research techniques, select best method, implement, and integrate image processing for robot system & Methasit Boonpun \\
+        \hline
+        Speech Processing & Research methods, choose best approach, implement, and integrate speech-to-command module & Withawin Kraipetchara \\
+        \hline
+        Interface with Robot Arm & Develop UR Arm library, integrate hardware, run simulation, and perform real implementation & Krittin Kitjaruwannakul \\
+        \hline
+        Project Paperwork & Prepare proposal, progress reports, draft final report, and final presentation & All Members \\
+        \hline
+    \end{tabular}
+    \caption{An outline of major responsibilities assigned to each member within the project}
+    \label{tab:roles_responsibilities}
+\end{table}
+}
+
+The roles and duties of this project revolve around the four main features. Each feature is allocated to a team member as outlined in Table~\ref{tab:roles_responsibilities}
+
+
+\newpage
+\bibliographystyle{IEEEtran}
+\bibliography{ref}
+
+\end{document}

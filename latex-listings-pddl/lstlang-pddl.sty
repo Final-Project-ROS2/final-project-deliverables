@@ -1,0 +1,284 @@
+%% lstlang-pddl.sty
+%
+% Copyright (C) 2023 conjikidow
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version
+% 1.3c of this license or (at your option) any later version.
+% The latest version of this license is in
+%   https://www.latex-project.org/lppl.txt
+% and version 1.3c or later is part of all distributions of LaTeX
+% version 2008 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+%
+% The Current Maintainer of this work is conjikidow.
+%
+% This work consists of the file lstlang-pddl.sty only.
+
+
+\ProvidesFile{lstlang-pddl.sty}[2023/04/04 listings language file for PDDL]
+
+
+\lst@definelanguage[1.2]{PDDL}
+{
+    keywords={[1]
+        define,
+        domain,
+        addendum,
+
+        situation,
+        problem,
+    },
+    keywords={[2]
+        :extends,
+        :requirements,
+        :types,
+        :constants,
+        :domain-variables,
+        :predicates,
+        :timeless,
+        :action,
+        :axioms,
+        :safety,
+
+        :domain,
+        :situation,
+        :objects,
+        :init,
+        :goal,
+        :length,
+    },
+    keywords={[3]
+        :parameters,
+        :var,
+        :precondition,
+        :expansion,
+        :methods,
+        :maintain,
+        :effect,
+        :only-in-expansions,
+        :vars,
+        :context,
+        :implies,
+
+        :serial,
+        :parallel,
+    },
+    keywords={[4]
+        :strips,
+        :typing,
+        :disjunctive-preconditions,
+        :equality,
+        :existential-preconditions,
+        :universal-preconditions,
+        :quantified-preconditions,
+        :conditional-effects,
+        :action-expansions,
+        :foreach-expansions,
+        :dag-expansions,
+        :domain-axioms,
+        :subgoal-through-axioms,
+        :safety-constraints,
+        :expression-evaluation,
+        :fluents,
+        :open-world,
+        :true-negation,
+        :adl,
+        :ucpop,
+    },
+    keywords={[5]
+        +,
+        -,
+        *,
+        /,
+        =,
+        >,
+        <,
+        >=,
+        <=,
+        and,
+        or,
+        not,
+        imply,
+        exists,
+        forall,
+        when,
+        change,
+        eval,
+        test,
+        bounded-int,
+        equation,
+        current-value,
+        fluent-eval,
+        fluent-test,
+    },
+    alsoletter = {:,-,=,<,>,/,*,?},
+    comment=[l]{\;},
+    sensitive=true
+}[keywords, comments]
+
+\lst@definelanguage[2.1]{PDDL}[1.2]{PDDL}
+{
+    deletekeywords={[1]
+        addendum,
+
+        situation,
+    },
+    deletekeywords={[2]
+        :extends,
+        :domain-variables,
+        :timeless,
+        :axioms,
+        :safety,
+
+        :situation,
+        % :length, % The length-spec is deprecated but available
+    },
+    morekeywords={[2]
+        :functions,
+        :action,
+        :durative-action,
+
+        :metric,
+    },
+    keywords={[3]
+        :parameters,
+        :duration,
+        :precondition,
+        :condition,
+        :effect,
+
+        :serial, % The length-spec is deprecated but available
+        :parallel, % The length-spec is deprecated but available
+    },
+    deletekeywords={[4]
+        :action-expansions,
+        :foreach-expansions,
+        :dag-expansions,
+        :domain-axioms,
+        :subgoal-through-axioms,
+        :safety-constraints,
+        :expression-evaluation,
+        :open-world,
+        :true-negation,
+        :ucpop,
+    },
+    morekeywords={[4]
+        :negative-preconditions,
+        :durative-actions,
+        :duration-inequalities,
+        :continuous-effects,
+    },
+    deletekeywords={[5]
+        change,
+        eval,
+        test,
+        bounded-int,
+        equation,
+        current-value,
+        fluent-eval,
+        fluent-test,
+    },
+    morekeywords={[5]
+        assign,
+        scale-up,
+        scale-down,
+        increase,
+        decrease,
+        at,
+        start,
+        end,
+        over,
+        all,
+
+        minimize,
+        maximize,
+        total-time,
+    },
+}
+
+\lst@definelanguage[2.2]{PDDL}[2.1]{PDDL}
+{
+    deletekeywords={[2]
+    },
+    morekeywords={[2]
+        :derived,
+    },
+    deletekeywords={[3]
+    },
+    morekeywords={[3]
+    },
+    deletekeywords={[4]
+        :duration-inequalities,
+        :continuous-effects,
+    },
+    morekeywords={[4]
+        :derived-predicates,
+        :timed-initial-literals,
+    },
+    deletekeywords={[5]
+    },
+    morekeywords={[5]
+    },
+}
+
+\lst@definelanguage[3.0]{PDDL}[2.2]{PDDL}
+{
+    deletekeywords={[2]
+    },
+    morekeywords={[2]
+        :constraints,
+    },
+    deletekeywords={[3]
+    },
+    morekeywords={[3]
+    },
+    deletekeywords={[4]
+    },
+    morekeywords={[4]
+        :constraints,
+        :preferences,
+    },
+    deletekeywords={[5]
+    },
+    morekeywords={[5]
+        always,
+        sometime,
+        within,
+        at-most-once,
+        sometime-after,
+        sometime-before,
+        always-within,
+        hold-during,
+        hold-after,
+
+        preference,
+        is-violated,
+    },
+}
+
+\lst@definelanguage[3.1]{PDDL}[3.0]{PDDL}
+{
+    deletekeywords={[2]
+    },
+    morekeywords={[2]
+    },
+    deletekeywords={[3]
+    },
+    morekeywords={[3]
+    },
+    deletekeywords={[4]
+    },
+    morekeywords={[4]
+        :duration-inequalities,
+        :continuous-effects,
+        :numeric-fluents,
+        :object-fluents,
+        :action-costs,
+    },
+    deletekeywords={[5]
+    },
+    morekeywords={[5]
+    },
+}
