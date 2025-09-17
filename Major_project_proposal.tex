@@ -260,25 +260,46 @@ To establish the Automatic Speech Recognition (ASR) foundation for robot manipul
 \subsubsection{Visual}
 We decided to implements modular vision pipeline consisting of four sequential stages: object detection and segmentation, object classification, grasp synthesis, and scene understanding. Each stage is designed to progressively enrich the robot's understanding of its environments, with the ultimate goal of enabling reliable manipulation and task executive. \\
 
-Our exploration has focused on leveraging foundation models such as the Segment Anything Model (SAM) for segmentation and CLIPs for classification, while ensuring modularity that allows integration with grasping algorithm (e.g., GraspNet) and higher-level reasoning (e.g. Vision-Language Models for scene understanding) \\
+Our exploration has focused on leveraging foundation models such as the Segment Anything Model (SAM) for segmentation and CLIPs for classification, while ensuring modularity that allows integration with grasping algorithm (e.g., GraspNet) and higher-level reasoning (e.g. Vision-Language Models for scene understanding) ~\cite{segment-anything-2023,tlac-2025,hanwen2024_grasp,scene_seg}. \\
 
-In this report, we implemented and tested the first two stages of our vision pipeline: object detection/segementation and object classification 
+In this time period, we implemented and tested the first two stages of our vision pipeline: object segmentation and object classification \\
 
-\begin{itemize}
 
-\item Object Segmentation
-We used the SAM model to segment objects in tool-rich images. SAM successfully generated fine-grained masks and bounding boxes, producing over 50 detected regions per image. However, elongated objects such as pliers were often split into multiple masks. To address this, we implemented a mask merging strategy based on bounding box overlap and mask adjacency. This reduced redundant detections and allowed us to consolidate fragmented masks into a single object representation.
-[img]
+\textbf{Object Segmentation} \\
 
-\item Object Classification
+
+We used the SAM model to segment objects in tool-rich images. SAM successfully generated fine-grained masks and bounding boxes, producing over 50 detected regions per image as show in Figure ~\ref{fig: sam_pre}. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/sam_pre.png}
+    \caption{Segmentation results using the Segment Anything Model (SAM). 
+    Elongated objects (e.g., pliers) are often over-segmented into multiple masks}
+    \label{fig: sam_pre}
+\end{figure}
+
+However, elongated objects such as pliers were often split into multiple masks. To address this, we implemented a mask merging strategy based on bounding box overlap and mask adjacency. This reduced redundant detections and allowed us to consolidate fragmented masks into a single object representation.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{images/sam_post.png}
+    \caption{Segmentation results after applying the mask merging strategy. 
+    Over-segmented masks are combined into a unified representation}
+    \label{fig: sam_post}
+\end{figure}
+
+\textbf{Object Classification} \\
 We integrated CLIP embeddings with a curated tool embedding set covering 15 tool categories. After applying mask refinement, the cropped object regions fed into CLIP showed improved consistency. For example, screwdriver and pliers that were previously classified as multiple partial objects now produced stable predictions with higher confidence scores.
-[img]
 
-\end{itemize}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/clips_img.png}
+    \caption{Object classification results using CLIP model}
+    \label{fig: clips_img}
+\end{figure}
 
-By combining SAM segmentation with our refinement step and CLIP classification, we achieved more reliable object labeling across the dataset. Classification accuracy improved in terms of both stability (fewer duplicate predictions) and confidence values.
 
-We will extend the refinement module with embedding similarity checks to further improve mask consolidation. This will prepare the data flow for the third stage of the pipeline which is grasp synthesis.
+By combining SAM segmentation with our refinement step and CLIP classification, we achieved more reliable object labeling across the dataset. Classification accuracy improved in terms of both stability (fewer duplicate predictions) and confidence values. We will extend the refinement module with embedding similarity checks to further improve mask consolidation. This will prepare the data flow for the third stage of the pipeline which is grasp synthesis.
 
 
 
@@ -300,7 +321,7 @@ In this approach, We designed a workflow where:
 
 \end{itemize}
 
-Once the PDDL code is generated, We use the Fast Downward planner to test whether the resulting domain and problem files are syntactically correct and solvable.
+Once the PDDL code is generated, We use the Fast Downward planner to find the solution for the defined problem.
 
 Through this exploration, We have begun to identify the challenges of automating PDDL generation. These include ensuring syntactic correctness, capturing accurate action preconditions and effects, and handling underspecified or ambiguous task instructions. At the same time, the results demonstrate the potential of combining LLM reasoning, multimodal perception, and interactive tool use to streamline the process of translating high-level descriptions into structured planning problems.
 
@@ -590,6 +611,23 @@ Once a problem instance is generated, the Planner Interface invokes an external 
 The execution stage is managed by Plan Dispatch, which subscribes to plan topics and coordinates the enactment of individual actions. Each action in the parsed plan is linked to the relevant ROS processes responsible for carrying it out, enabling seamless integration between high-level symbolic plans and low-level robot control.
 
 Together, these nodes form a closed deliberation loop that unifies symbolic AI planning with ROS. ROSPlan thereby enables robots to progress from goals such as “navigate to room B and deliver the package” to actual coordinated actions, while maintaining modularity, transparency, and reusability across robotic domains. Its layered architecture provides a foundation for building robust, goal-driven autonomy in service robotics, multi-robot coordination, and other AI-enabled robotic applications~\cite{ros-plan}.
+
+\subsection{MoveIt2}
+
+MoveIt2 is a motion planning framework for ROS2 that integrates kinematics, collision checking, planning, and execution into a unified pipeline. It enables robots to interpret high-level goals, such as "pick the object and place it in the bin", and compute collision-free, dynamically feasible trajectories to accomplish them.
+
+At its core, MoveIt2 is structured around modular components, as shown in Figure~\ref{fig:moveit_pipeline}. The Kinematics module translates between joint states and end-effector poses, while the Planning Scene Monitor maintains an up-to-date model of the environment. The Motion Planning system leverages planners such as OMPL or TrajOpt to generate valid paths, which are refined in the Trajectory Processing stage into smooth, executable trajectories.
+
+The central move\_group node provides a user-facing API for motion planning and execution, while advanced features like Hybrid Planning combine long-horizon strategies with local reactive control. The MoveIt Task Constructor further extends this capability by composing multi-step task sequences, making it suitable for applications such as bin picking and assembly.
+
+MoveIt2 shifts motion planning from isolated libraries toward a flexible, extensible middleware. Its modular design promotes reusability and adaptability across robotic domains, though challenges remain in accurate modeling, computational cost, and system tuning~\cite{moveit-doc},\cite{moveit2}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{images/moveit_pipeline.png}
+    \caption{MoveIt2 motion planning pipeline.}
+    \label{fig:moveit_pipeline}
+\end{figure}
 
 \subsection{Artificial Intelligence in Image Processing}
 
