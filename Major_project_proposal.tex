@@ -218,7 +218,7 @@ For this project, we aim to contribute to this progress by addressing some of th
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{images/Sytem_Architecture_Overview.png}
+    \includegraphics[width=\linewidth]{images/System_Architecture_Overview.png}
     \caption{System Architecture Overview}
     \label{fig: architecture overview}
 \end{figure}
@@ -226,7 +226,7 @@ For this project, we aim to contribute to this progress by addressing some of th
 The project combines:
 \begin{itemize}
     \item \textbf{Neural AI}: Object detection, segmentation, grasp synthesis, automatic speech recognition, and natural language understanding.
-    \item \textbf{Symbolic AI}: Explicit reasoning over tasks with preconditions and effects. Constraints enforcement to ensure executability.
+    \item \textbf{Symbolic AI}: Constraints enforcement to ensure executability. Path and trajectory generation.
     \item \textbf{Robotics}: A robot arm with a gripper executing precise manipulation under safe handover protocols. 
 \end{itemize}
 This neuro-symbolic hybrid design ensures adaptability, efficiency, and user transparency. \\
@@ -235,15 +235,98 @@ This neuro-symbolic hybrid design ensures adaptability, efficiency, and user tra
 \begin{enumerate}
     \item Users instruct the robot through high level, natural language, vocal commands.
     \item The vocal command is converted into text using Automatic Speech Recognition (ASR) pipeline.
-    \item Semantics and discrete concepts are extracted from the text commands using Natural Language Understanding (NLP) techniques, resulting in a latent representation (for symbolic processing) and a detailed description (for LLMs).
+    \item Semantics and discrete concepts are extracted from the text commands using Natural Language Processing (NLP) techniques, resulting a detailed description (for LLMs).
     \item The current state of the work area is perceived through a camera.
-    \item The live visual feed is processed by applying object detection, segmentation, grasp synthesis, and visual understanding, resulting in a latent representation (for symbolic processing) and a detailed description (for LLMs).
-    \item The main algorithm plans and generates the program for the robot arm to execute. This could involve multiple techniques and technologies, such as the use of LLM, Multi-agent system, and PDDL, depending on the latent representation and architecture.
-    \item The generated program is analyzed symbolically to ensure executability.
+    \item The live visual feed is processed by applying object detection, segmentation, grasp synthesis, and visual understanding.
+    \item Visual and textual information are converted into symbolic representation by utilizing LLMs with access to visual perception tools and query users for additional details.
+    \item The symbolic high-level planner decomposes the high-level task into sequential sub-tasks.
     \item The user can confirm, reject, or adjust the program proposed by the algorithm. Creating a closed-loop feedback system that allows more control.
-    \item Once a program is approved by the user, the robot arm executes the program.
+    \item Once a plan is confirmed by the user, each sub-task is executed.
 
 \end{enumerate}
+
+\subsection{The Current Development of the Project}
+
+\subsubsection{Speech}
+To establish the Automatic Speech Recognition (ASR) foundation for robot manipulation, a speech-to-text pipeline was developed using the AssemblyAI API. In this prototype, example audio inputs such as harvard.wav were uploaded to a secure cloud endpoint, processed by AssemblyAI’s transcription service, and retrieved once the transcription was complete. This workflow demonstrates how spoken instructions can be reliably converted into machine-readable text, which can subsequently be interpreted by Natural Language Processing (NLP) modules. By providing a robust and modular ASR layer, the system lays the groundwork for future integration with multimodal approaches, where linguistic input is contextualized with visual information from the robot’s environment. Building upon this foundation, the next stage of development will focus on extending the system into real-time ASR, enabling immediate transcription of speech and thereby allowing more natural, responsive interaction between humans and robots.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/vcs.py.png}
+    \caption{Example of the vcs pipeline using AssemblyAI with sample input (“harvard.wav”)}
+    \label{fig: vcs example}
+\end{figure}
+
+\subsubsection{Visual}
+We decided to implements modular vision pipeline consisting of four sequential stages: object detection and segmentation, object classification, grasp synthesis, and scene understanding. Each stage is designed to progressively enrich the robot's understanding of its environments, with the ultimate goal of enabling reliable manipulation and task executive. \\
+
+Our exploration has focused on leveraging foundation models such as the Segment Anything Model (SAM) for segmentation and CLIPs for classification, while ensuring modularity that allows integration with grasping algorithm (e.g., GraspNet) and higher-level reasoning (e.g. Vision-Language Models for scene understanding) \\
+
+In this report, we implemented and tested the first two stages of our vision pipeline: object detection/segementation and object classification 
+
+\begin{itemize}
+
+\item Object Segmentation
+We used the SAM model to segment objects in tool-rich images. SAM successfully generated fine-grained masks and bounding boxes, producing over 50 detected regions per image. However, elongated objects such as pliers were often split into multiple masks. To address this, we implemented a mask merging strategy based on bounding box overlap and mask adjacency. This reduced redundant detections and allowed us to consolidate fragmented masks into a single object representation.
+[img]
+
+\item Object Classification
+We integrated CLIP embeddings with a curated tool embedding set covering 15 tool categories. After applying mask refinement, the cropped object regions fed into CLIP showed improved consistency. For example, screwdriver and pliers that were previously classified as multiple partial objects now produced stable predictions with higher confidence scores.
+[img]
+
+\end{itemize}
+
+By combining SAM segmentation with our refinement step and CLIP classification, we achieved more reliable object labeling across the dataset. Classification accuracy improved in terms of both stability (fewer duplicate predictions) and confidence values.
+
+We will extend the refinement module with embedding similarity checks to further improve mask consolidation. This will prepare the data flow for the third stage of the pipeline which is grasp synthesis.
+
+
+
+
+
+\subsubsection{Planning}
+
+\textbf{Symbolic Representation} \\
+We decided to use PDDL as our symbolic representation for our problem. Planning Domain Definition Language (PDDL), which is discussed in further details in Section~\ref{sec: pddl} is a standardized language for modeling automated planning problems in artificial intelligence. Our exploration has focused on using large language models (LLMs) and multimodal language models (MLLMs) to automatically generate PDDL code from high-level task inputs. The idea is to reduce the gap between human task descriptions (in natural language or images) and the formal specifications required by planners.
+
+In this approach, We designed a workflow where:
+\begin{itemize}
+
+\item Environment images are processed by an MLLM to extract structured details (e.g., objects, spatial relations, constraints), which are then translated into the domain model of PDDL.
+
+\item Textual task instructions are provided to the LLM, which generates the corresponding goal conditions and relevant actions.
+
+\item A LangChain-based agent orchestrates the process, giving the LLM access to multiple tools: one for querying the image model for clarification of environment details, and another for interactively querying the user to resolve ambiguities in the textual instructions.
+
+\end{itemize}
+
+Once the PDDL code is generated, We use the Fast Downward planner to test whether the resulting domain and problem files are syntactically correct and solvable.
+
+Through this exploration, We have begun to identify the challenges of automating PDDL generation. These include ensuring syntactic correctness, capturing accurate action preconditions and effects, and handling underspecified or ambiguous task instructions. At the same time, the results demonstrate the potential of combining LLM reasoning, multimodal perception, and interactive tool use to streamline the process of translating high-level descriptions into structured planning problems.
+
+\subsubsection{Simulation}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/setup.png}
+    \caption{Shared Computer Setup at Chulapat 14}
+    \label{fig: setup}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{images/isaac_ur.png}
+    \caption{UR ARM 3e with Robotiq Gripper in Isaac Sim}
+    \label{fig: isaac-sim-ur}
+\end{figure}
+
+The simulation environment was set up on a shared computer located in room 9019-1, 9th floor, Chulapat 14 Building, as shown in Figure~\ref{fig: setup}. This room also houses the UR robotic arm that will be used for physical experiments in the following semester. For the current semester, however, the focus is entirely on simulation.
+
+To simulate robot control, we installed Isaac Sim on the shared computer. Since the long-term plan involves controlling the UR arm through ROS2, we configured the Isaac Sim ROS2 bridge, which allows the simulated robot to be controlled via ROS2 nodes. The simulation stack was deployed in a hybrid environment: Isaac Sim running on Windows, while ROS2 Humble was installed and run inside Ubuntu 22.04 on WSL2 on the same machine.
+
+Isaac Sim provides built-in models for the UR3e robotic arm and the Robotiq gripper, as shown in Figure~\ref{fig: isaac-sim-ur}, both of which are the intended hardware components for future deployment. To maintain consistency between simulation and hardware, we also set up the official Universal Robots ROS2 driver~\cite{urarm-ros2}. The driver was successfully installed and tested; however, its documentation currently focuses on integration with URSim, the manufacturer’s own simulator, rather than with Isaac Sim. As a result, integrating the ROS2 driver with Isaac Sim presents additional challenges that we are still investigating.
+
+In summary, the simulation environment is now operational with Isaac Sim and the ROS2 bridge, providing a foundation for testing planning and control pipelines in a simulated setting before moving to physical hardware next semester. The next milestone will be establishing integration between the official UR ROS2 driver and Isaac Sim, which will ensure compatibility between the simulated workflows and the physical UR arm.
 
 \newpage
 \section{Project Planning}
@@ -425,8 +508,32 @@ With only 27 million parameters and training on just 1,000 examples per task, HR
 Vision Language Models (VLMs) are multimodal generative AI models that combine image and text understanding to perform a wide range of tasks, including visual question answering, image captioning, document analysis, and instruction-based image recognition. Many VLMs can also reason about spatial relationships in images, producing outputs like bounding boxes or segmentation masks. Architecturally, they usually consist of an image encoder, a projection layer that aligns image and text embeddings, and a text decoder for generating output, as shown in Figure~\ref{fig:vlm-structure}. Popular open-source VLMs include LLaVA, KOSMOS-2, Qwen-VL, CogVLM, and Fuyu-8B, each varying in model size, supported features such as chat or grounding, and image resolution~\cite{huggingface_vlms_2024}.
 
 VLMs are powerful in zero-shot generalization, allowing them to handle unseen images and prompts without additional training. Furthermore, fine-tuning allows adaptation to specialized applications, such as educational tools, interactive assistants, or automated document evaluation. Their limitations include susceptibility to hallucinations, biases from training data, and high computational requirements for end-to-end training or large models~\cite{huggingface_vlms_2024}.
+\subsection{Vision-Language-Action (VLA) Models}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{images/vla.png}
+    \caption{End-to-end Tokenization and Representation Process in VLA Models (from~\cite{vla})}
+    \label{fig:vla}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/vla-in-robot.png}
+    \caption{Comparison between Monolithic and Hierarchical models (from~\cite{vla-in-robot})}
+    \label{fig:vla-in-robot}
+\end{figure}
+
+Vision-Language-Action (VLA) models are multimodal AI systems that unify visual perception, natural language understanding, and embodied action into a single framework. Originally developed to overcome the fragmentation of traditional robotic pipelines, VLAs integrate pretrained Vision-Language Model (VLM) backbones with action policies, enabling robots to interpret high-level human instructions, reason about spatial relationships, and execute manipulation tasks in dynamic, real-world environments~\cite{vla}. For example, a VLA can follow commands such as “place the red mug next to the laptop onto the top shelf” by grounding visual perception, spatial reasoning, and motor control in a shared computational space. Architecturally, VLAs often rely on transformer-based models that fuse visual, linguistic, and state inputs into a common embedding~\cite{vla},\cite{vla-in-robot}.
+
+A core innovation of VLAs lies in treating robot control as a sequence generation problem. Continuous actions, such as joint angles or end-effector poses, are discretized into tokens, allowing the model to autoregressively predict action tokens in the same way language models generate text. Alongside these, prefix tokens encode context from images and text, while state tokens represent the robot’s internal configuration, as shown in Figure~\ref{fig:vla}. This unified tokenization framework enables reasoning and execution to occur in the same latent space, with a de-tokenizer translating action tokens back into executable motor commands~\cite{vla},\cite{vla-in-robot}.
+
+Two main architectural paradigms have emerged in robotic manipulation, as show in Figure~\ref{fig:vla-in-robot}. Monolithic models directly map multimodal inputs to low-level actions, sometimes combining a “slower” VLM for reasoning with a “faster” policy module for reactive control. In contrast, hierarchical models decouple high-level planning from low-level execution, with a planner producing intermediate representations (e.g., subtasks or keypoints) for downstream policies~\cite{vla-in-robot}. These designs balance efficiency, interpretability, and modularity, depending on task complexity.
+
+VLAs represent a shift from handcrafted pipelines toward end-to-end, language-driven policy generation. They leverage the semantic grounding of VLM pretraining while extending it to action, offering broad potential in robotics, embodied assistants, and human-robot interaction. However, they face limitations such as high computational requirements, difficulty in precisely grounding abstract instructions, and restricted generalization beyond training distributions~\cite{vla},\cite{vla-in-robot}.
 
 \subsection{Planning Domain Definition Language (PDDL)}
+\label{sec: pddl}
 Planning Domain Definition Language (PDDL) is a standardized language for modeling automated planning problems in artificial intelligence. It separates a domain (the rules of the world: types, predicates, and actions) from a problem (a specific initial state and goal). PDDL allows users to specify objects, predicates, actions, and goals in a structured way, enabling automated planners to generate sequences of actions that achieve desired outcomes. However, PDDL is deliberately neutral: it encodes the physics of a domain without embedding heuristics or solving strategies, meaning many planners only support subsets of the language~\cite{pddl-1.2}.
 
 A classic illustration is the Briefcase World. Here, moving the briefcase also moves everything inside it, while objects can be put in or taken out. Below, the domain defines actions and the problem specifies the goal of moving a dictionary and briefcase to the office while leaving a paycheck at home:
@@ -464,6 +571,25 @@ A classic illustration is the Briefcase World. Here, moving the briefcase also m
 \end{lstlisting}
 
 PDDL has evolved from its early versions, like PDDL 1.2, which used predicate logic with true/false properties and actions, to more expressive forms. PDDL 2.1 introduced durative actions and numeric fluents for modeling time and resources, while PDDL 2.2 added derived predicates and timed literals. PDDL 3.0 incorporated soft constraints and preferences with costs, and PDDL+ enabled modeling of processes and uncontrollable events. Specialized variants such as PPDDL, NDDL, and MADDL were later developed for domain-specific planning needs~\cite{pddl}.
+
+\subsection{ROSPlan}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{images/ros_plan.png}
+    \caption{ROSPlan Architecture (from~\cite{ros-plan})}
+    \label{fig:ros-plan}
+\end{figure}
+
+ROSPlan is a framework that provides a structured collection of tools for integrating AI planning into robotic systems built on the Robot Operating System (ROS). Originally developed to bridge the gap between symbolic task planning and real-world robotic execution, ROSPlan encapsulates the entire deliberation cycle: knowledge representation, problem generation, planning, parsing, and plan execution. This modular design enables robots to autonomously reason about their environment, generate feasible plans, and reliably execute them in dynamic contexts.
+
+At its core, ROSPlan is composed of multiple dedicated nodes, each responsible for a specific stage in the planning pipeline, as shown in Figure~\ref{fig:ros-plan}. The Knowledge Base maintains both the PDDL domain model and the current problem instance, storing the state as a symbolic PDDL representation that can be queried or updated through ROS messages. Building on this, the Problem Interface generates new PDDL problem instances by combining domain details with the current world state, publishing them as strings or writing them to file.
+
+Once a problem instance is generated, the Planner Interface invokes an external AI planner. Acting as a wrapper, it supplies the domain and problem files, calls the planner via a configurable command line, and reports whether a valid plan was found. The resulting plan is then processed by the Parsing Interface, which translates the raw planner output into structured ROS messages that can be executed within the system.
+
+The execution stage is managed by Plan Dispatch, which subscribes to plan topics and coordinates the enactment of individual actions. Each action in the parsed plan is linked to the relevant ROS processes responsible for carrying it out, enabling seamless integration between high-level symbolic plans and low-level robot control.
+
+Together, these nodes form a closed deliberation loop that unifies symbolic AI planning with ROS. ROSPlan thereby enables robots to progress from goals such as “navigate to room B and deliver the package” to actual coordinated actions, while maintaining modularity, transparency, and reusability across robotic domains. Its layered architecture provides a foundation for building robust, goal-driven autonomy in service robotics, multi-robot coordination, and other AI-enabled robotic applications~\cite{ros-plan}.
 
 \subsection{Artificial Intelligence in Image Processing}
 
