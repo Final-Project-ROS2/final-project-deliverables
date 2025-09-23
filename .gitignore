@@ -49,3 +49,4 @@ build/
 *.fls
 *.bcf 
 *.pyg
+*.pdf
