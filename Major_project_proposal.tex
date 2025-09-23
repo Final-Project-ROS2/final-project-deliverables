@@ -114,38 +114,15 @@ Drawing from the prior examination of robotic manipulation through natural langu
 
 \subsubsection{Voice Control and Multimodal Speech Recognition for Robot Manipulation}
 
-Voice-based interaction has played a central role in enabling natural communication between humans and robots. Two key approaches that have been widely studied are \textbf{Voice Control Systems (VCS)} and \textbf{Automatic Speech Recognition (ASR)}, both of which contribute to making robot manipulation more intuitive and user-friendly.  
+Voice-based interaction provides a natural interface for instructing robots, and Automatic Speech Recognition (ASR) forms the foundation of such systems. Early approaches relied on keyword spotting and grammar-based recognition, which worked reliably for simple commands in controlled environments~\cite{smith2015voice}. However, these systems often fail under noisy conditions or when commands are ambiguous, motivating the shift toward data-driven neural methods.
 
-\textbf{Traditional Voice Control Systems (VCS).}  
-VCS applications have demonstrated the potential of speech as a hands-free, natural interface in multiple domains~\cite{vcs}:  
-\begin{itemize}
-    \item \textbf{Early Childhood Education:} Speech-activated robotics systems enable children to communicate with robots through simple voice commands, fostering intuitive interaction.  
-    \item \textbf{Smart Home Automation:} By integrating IoT, Fog, and Cloud architectures with speech-to-text and text-to-speech systems, users can control lights and appliances through voice interfaces.  
-    \item \textbf{Assistance for Individuals with Disabilities:} Low-cost voice-based home automation solutions allow people with paraplegia or quadriplegia to control adjustable beds or other devices with simple commands.  
-    \item \textbf{Healthcare Applications:} Voice recognition on mobile devices helps medical staff record workflow milestones efficiently, reducing the burden of manual data entry.  
-    \item \textbf{Traffic Management:} Voice-controlled systems can adjust traffic signals based on simple commands such as ``red,'' ``green,'' or ``yellow.''  
-\end{itemize}  
+Recent studies have addressed ASR robustness by incorporating sequence-to-sequence parsing with noise injection, allowing semantic parsers to tolerate ASR errors commonly encountered in service robotics~\cite{tada2020robust}. Similarly, distributed architectures have been proposed, such as using an Android device for speech recognition coupled with a lightweight microcontroller (ESP32) for actuation, achieving low-latency, real-time control even in noisy environments~\cite{gupta2025speech}.
 
-Despite their wide use, traditional VCS are typically limited to \textit{predefined tasks}. They struggle with grounding fine-grained concepts (e.g., color, material, or spatial relations), algorithmic reasoning (e.g., counting, comparing), and often function as black-box systems that require large datasets for training and lack interpretability~\cite{vcs}. Security and data privacy also remain ongoing concerns.  
+Beyond speech-only systems, multimodal ASR approaches integrate visual, gestural, or haptic information to improve recognition and grounding. For instance, the Vision-Language-Action (VLAS) framework combines speech and visual inputs to interpret commands in dynamic environments, enabling context-aware robot manipulation~\cite{yu2020vlas}. Other multimodal methods leverage gaze tracking or environmental cues to disambiguate spoken instructions, reducing errors and improving task performance~\cite{liu2021multimodal}.
 
-\textbf{Automatic Speech Recognition (ASR) and Multimodal ASR.}  
-To overcome these limitations, modern systems have moved toward \textbf{Automatic Speech Recognition (ASR)}, particularly \textbf{multimodal ASR}, which integrates both speech and visual context to improve accuracy in real-world, noisy environments~\cite{Chang2023}. This approach is better aligned with the conditions faced by physical robots that must interpret spoken rather than written instructions.  
+Despite these advances, limitations persist. ASR systems still degrade in real-world noisy conditions, while multimodal approaches often require expensive sensors or large-scale datasets, limiting general deployment~\cite{liu2021multimodal}. Moreover, most works focus on recognition accuracy, with fewer studies addressing usability, user experience, or trust in human-robot interaction. These gaps highlight the need for solutions that are both technically robust and practically deployable in everyday environments.
 
-Key purposes and mechanisms of multimodal ASR include:  
-\begin{itemize}
-    \item \textbf{Addressing Input Gaps:} While many benchmarks assume text-based instructions, robots deployed in practice must process spoken commands. Multimodal ASR bridges this gap by converting speech into text~\cite{Chang2023}.  
-    \item \textbf{Reducing Recognition Errors:} Unlike unimodal ASR, which may misinterpret unclear words, multimodal ASR leverages accompanying visual information to resolve ambiguities~\cite{Chang2023}.  
-    \item \textbf{Example Scenario:} If a robot hears ``Put the egg in the \ldots'' but the final word is noisy, unimodal ASR might incorrectly guess ``fridge.'' Multimodal ASR, however, can use visual context (e.g., spotting a microwave nearby) to correctly infer ``microwave''~\cite{Chang2023}.  
-\end{itemize}  
 
-\textbf{Architecture of Multimodal ASR:}  
-\begin{itemize}
-    \item \textbf{Speech Encoding:} Spoken instructions are processed by a speech encoder (e.g., wav2vec 2.0) to extract meaningful features~\cite{Chang2023}.  
-    \item \textbf{Visual Encoding:} The robot’s current visual observation is processed by a visual encoder (e.g., CLIP-ViT) into a feature vector~\cite{Chang2023}.  
-    \item \textbf{Joint Decoding:} A Transformer-based decoder attends to both the speech and visual encodings, combining them to predict an accurate textual transcription of the spoken command~\cite{Chang2023}.  
-\end{itemize}  
-
-Together, VCS and multimodal ASR represent complementary solutions for enabling natural language robot manipulation. VCS laid the foundation for voice-driven interfaces in defined contexts, while multimodal ASR extends these capabilities to \textit{open, context-rich environments}, where accurate and adaptive interpretation of spoken instructions is crucial~\cite{vcs},\cite{Chang2023}.
 
 \subsubsection{Robot Planning}
 
@@ -248,13 +225,13 @@ This neuro-symbolic hybrid design ensures adaptability, efficiency, and user tra
 \subsection{The Current Development of the Project}
 
 \subsubsection{Speech}
-To establish the Automatic Speech Recognition (ASR) foundation for robot manipulation, a speech-to-text pipeline was developed using the AssemblyAI API. In this prototype, example audio inputs such as harvard.wav were uploaded to a secure cloud endpoint, processed by AssemblyAI’s transcription service, and retrieved once the transcription was complete. This workflow demonstrates how spoken instructions can be reliably converted into machine-readable text, which can subsequently be interpreted by Natural Language Processing (NLP) modules. By providing a robust and modular ASR layer, the system lays the groundwork for future integration with multimodal approaches, where linguistic input is contextualized with visual information from the robot’s environment. Building upon this foundation, the next stage of development will focus on extending the system into real-time ASR, enabling immediate transcription of speech and thereby allowing more natural, responsive interaction between humans and robots.
+To establish the Automatic Speech Recognition (ASR) foundation for robot manipulation, a speech-to-text pipeline was developed using the AssemblyAI API. In this prototype, example audio inputs such as harvard.wav were uploaded to a secure cloud endpoint, processed by AssemblyAI’s transcription service, and retrieved once the transcription was complete. This workflow demonstrates how spoken instructions can be reliably converted into machine-readable text, which can subsequently be interpreted by Natural Language Processing (NLP) as show in Figure ~\ref{fig: ASR_Pipeline.png}.. By providing a robust and modular ASR layer, the system lays the groundwork for future integration with multimodal approaches, where linguistic input is contextualized with visual information from the robot’s environment. Building upon this foundation, the next stage of development will focus on extending the system into real-time ASR, enabling immediate transcription of speech and thereby allowing more natural, responsive interaction between humans and robots.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{images/vcs.py.png}
+    \includegraphics[width=\linewidth]{images/ASR_Pipeline.png}
     \caption{Example of the vcs pipeline using AssemblyAI with sample input (“harvard.wav”)}
-    \label{fig: vcs example}
+    \label{fig: ASR_Pipeline.png}
 \end{figure}
 
 \subsubsection{Visual}
