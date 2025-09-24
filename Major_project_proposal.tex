@@ -105,6 +105,11 @@ Drawing from the prior examination of robotic manipulation through natural langu
   \item Provide interpretable task plans that users can inspect, adjust, or correct
 
   This addresses the critical problem of "black box" AI, where purely neural systems lack transparency and the ability to explain their decisions. This opacity makes it challenging for non-expert users to diagnose and correct errors in a robot's behavior. Neuro-symbolic AI explicitly tackles this by disentangling reasoning from visual perception and language understanding, leading to fully transparent and interpretable reasoning processes. By generating explicit symbolic programs that represent the robot's plan as a sequence of logical steps, the system provides a formal, interpretable representation of its decision-making. This interpretability is crucial for human-in-the-loop interaction , allowing users to understand why a robot performs certain actions, inspect the generated task plans, and provide targeted feedback or corrections when a failure occurs. The ability to communicate about failures and ambiguities in a dialogue setting significantly enhances usability and trust in autonomous systems~\cite{enhancing-interpret},\cite{nsai}.
+
+
+  \item Demonstrate a success experiment
+
+  The robotic arm assistant must be able to correctly identify, retrieve, and deliver a specific engineering tool (e.g., wrench, screwdriver, or caliper) from a workspace containing at least 10 different tools, based solely on a natural language voice command from the user. The system should achieve \textbf{$\geq 95\%$ success rate across 20 trials}, with each retrieval completed in \textbf{$\leq 30$ seconds}, while ensuring \textbf{safe handover} to the user and causing \textbf{no unintended displacement of non-target tools greater than 2 cm}.
 \end{enumerate}
 
 \newpage
