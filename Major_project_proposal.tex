@@ -6,6 +6,7 @@
 \usepackage{float}
 \usepackage{listings}
 \usepackage{hyperref}
+\usepackage{siunitx}
 \graphicspath{{images/}}
 
 \begin{document}
@@ -110,9 +111,9 @@ Drawing from the prior examination of robotic manipulation through natural langu
 
 \subsection*{Evaluation Metrics and Benchmarks}
 
-To demonstrate successful end-to-end handover, the system must integrate language understanding, symbolic planning, perception, and grasping into a reliable pipeline. Recent studies show that robot-to-human tool handover can reach around 92.5\% success in simulation for construction tools~\cite{iaarc2025handover}, while sim-to-real grasping frameworks report 90--97\% success depending on object familiarity~\cite{mogpe2022, grasping2023}. Performance is typically lower for novel or cluttered settings, highlighting the importance of generalization.  
+To demonstrate successful end-to-end handover, the system must integrate language understanding, symbolic planning, perception, and grasping into a reliable pipeline. Recent studies show that robot-to-human tool handover can reach around 92.5\% success in simulation for construction tools~\cite{iaarc2025_handover}, while sim-to-real grasping frameworks report 90--97\% success depending on object familiarity~\cite{mogpe2022, grasping2023}. Performance is typically lower for novel or cluttered settings, highlighting the importance of generalization.  
 
-Timing benchmarks suggest that simple object handovers can be completed in 8--10 seconds~\cite{handover2024_fast}, though more complex engineering tools may reasonably require up to 15 seconds. Based on these findings, this project defines its main performance goal as achieving \textbf{≥90\% success over 60–80 trials}, with \textbf{completion within 15 seconds} and \textbf{minimal disturbance} (≤2 cm) to non-target tools.
+Timing benchmarks suggest that simple object handovers can be completed in 8--10 seconds~\cite{handover2024_fast}, though more complex engineering tools may reasonably require up to 15 seconds. Based on these findings, this project defines its main performance goal as achieving \textbf{$\geq90\%$ success over 60–80 trials}, with \textbf{completion within 15 seconds} and \textbf{minimal disturbance} $\leq\SI{2}{\centi\meter}$ to non-target tools.
 
 
 \end{enumerate}
