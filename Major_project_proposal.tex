@@ -15,7 +15,7 @@
 \begin{titlepage}
     \centering
     % Title
-    {\Large \textbf{Final Project Proposal}\par}
+    {\Large \textbf{Final Project I}\par}
     \vspace{1cm}
         
     {\Large \textbf{Planning AI Robot Arm Assistant for Tool Handling in Engineering Projects}\par}
@@ -111,7 +111,7 @@ Drawing from the prior examination of robotic manipulation through natural langu
 
 \subsection*{Evaluation Metrics and Benchmarks}
 
-To demonstrate successful end-to-end handover, the system must integrate language understanding, symbolic planning, perception, and grasping into a reliable pipeline. Recent studies show that robot-to-human tool handover can reach around 92.5\% success in simulation for construction tools~\cite{iaarc2025_handover}, while sim-to-real grasping frameworks report 90--97\% success depending on object familiarity~\cite{mogpe2022, grasping2023}. Performance is typically lower for novel or cluttered settings, highlighting the importance of generalization.  
+To demonstrate successful end-to-end handover, the system must integrate language understanding, symbolic planning, perception, and grasping into a reliable pipeline. Recent studies show that robot-to-human tool handover can reach around 92.5\% success in simulation for construction tools~\cite{iaarc2025_handover}, while sim-to-real grasping frameworks report 90--97\% success depending on object familiarity~\cite{mogpe2022},\cite{grasping2023}. Performance is typically lower for novel or cluttered settings, highlighting the importance of generalization.  
 
 Timing benchmarks suggest that simple object handovers can be completed in 8--10 seconds~\cite{handover2024_fast}, though more complex engineering tools may reasonably require up to 15 seconds. Based on these findings, this project defines its main performance goal as achieving \textbf{$\geq90\%$ success over 60–80 trials}, with \textbf{completion within 15 seconds} and \textbf{minimal disturbance} $\leq\SI{2}{\centi\meter}$ to non-target tools.
 
@@ -249,7 +249,7 @@ To establish the Automatic Speech Recognition (ASR) foundation for robot manipul
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{images/ASR_Pipeline.png}
-    \caption{Example of the vcs pipeline using AssemblyAI with sample input (“harvard.wav”)}
+    \caption{ASR pipeline using AssemblyAI}
     \label{fig: ASR_Pipeline.png}
 \end{figure}
 
