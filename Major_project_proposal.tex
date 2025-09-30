@@ -469,26 +469,6 @@ Among the algorithms capable of handling a range of Natural Language Processing 
 Language Model (LLM) has not only frequently appeared in numerous past studies but has also
 showcased immense potential for generating plans, transforming an initial world state into a desired state~\cite{plangenllm}.
 
-\subsection{Hierarchical Reasoning Model (HRM)}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.5\linewidth]{images/hrm-arch.png}
-    \caption{Hierarchical Reasoning Model Architecture Inspired by the Brain (from~\cite{hrm})}
-    \label{fig:hrm-archictecture}
-\end{figure}
-
-The Hierarchical Reasoning Model (HRM) is a brain-inspired neural architecture designed to overcome the limitations of current Large Language Models (LLMs) in reasoning tasks. Whereas LLMs rely heavily on Chain-of-Thought (CoT) prompting, which breaks problems into text-based intermediate steps that are brittle, slow, and data-hungry, HRM performs reasoning entirely in its hidden state space. The model employs two recurrent modules operating at different timescales: a high-level module that conducts slow, abstract planning, and a low-level module that executes fast, detailed computations, as shown in Figure~\ref{fig:hrm-archictecture}. This division enables HRM to achieve substantial computational depth in a single forward pass, avoiding the premature convergence and training instability typical of recurrent networks. To further improve efficiency, HRM introduces a one-step gradient approximation, bypassing the heavy memory requirements of Backpropagation Through Time (BPTT) while maintaining stable learning dynamics~\cite{hrm}.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.8\linewidth]{images/hrm-bench.png}
-    \caption{Hierarchical Reasoning Model Performances on Complex Benchmarks (from~\cite{hrm})}
-    \label{fig:hrm-results}
-\end{figure}
-
-With only 27 million parameters and training on just 1,000 examples per task, HRM attains near-perfect performance on complex benchmarks such as Sudoku-Extreme and Maze-Hard, where state-of-the-art CoT-based LLMs fail entirely. It also surpasses much larger models on the Abstraction and Reasoning Corpus (ARC), a benchmark widely regarded as a measure of general reasoning ability, as shown in Figure~\ref{fig:hrm-results}. Notably, HRM achieves this without pre-training or access to CoT data, demonstrating strong sample efficiency and scalability. By integrating principles of hierarchical processing, temporal separation, and recurrent refinement—mirroring neural mechanisms in the brain—HRM represents a promising step toward universal computation and general-purpose reasoning systems that go beyond the shallow reasoning capacity of today’s LLMs~\cite{hrm}.
-
 \subsection{Vision Language Model (VLM)}
 \begin{figure}[htbp]
     \centering
@@ -564,24 +544,23 @@ A classic illustration is the Briefcase World. Here, moving the briefcase also m
 
 PDDL has evolved from its early versions, like PDDL 1.2, which used predicate logic with true/false properties and actions, to more expressive forms. PDDL 2.1 introduced durative actions and numeric fluents for modeling time and resources, while PDDL 2.2 added derived predicates and timed literals. PDDL 3.0 incorporated soft constraints and preferences with costs, and PDDL+ enabled modeling of processes and uncontrollable events. Specialized variants such as PPDDL, NDDL, and MADDL were later developed for domain-specific planning needs~\cite{pddl}.
 
-\subsection{ROSPlan}
+\subsection{ROS2}
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{images/ros_plan.png}
-    \caption{ROSPlan Architecture (from~\cite{ros-plan})}
-    \label{fig:ros-plan}
+    \includegraphics[width=\linewidth]{images/ros2_architecture.png}
+    \caption{ROS2 conceptual architecture, illustrating nodes, topics, services, and actions.}
+    \label{fig:ros2_architecture}
 \end{figure}
 
-ROSPlan is a framework that provides a structured collection of tools for integrating AI planning into robotic systems built on the Robot Operating System (ROS). Originally developed to bridge the gap between symbolic task planning and real-world robotic execution, ROSPlan encapsulates the entire deliberation cycle: knowledge representation, problem generation, planning, parsing, and plan execution. This modular design enables robots to autonomously reason about their environment, generate feasible plans, and reliably execute them in dynamic contexts.
 
-At its core, ROSPlan is composed of multiple dedicated nodes, each responsible for a specific stage in the planning pipeline, as shown in Figure~\ref{fig:ros-plan}. The Knowledge Base maintains both the PDDL domain model and the current problem instance, storing the state as a symbolic PDDL representation that can be queried or updated through ROS messages. Building on this, the Problem Interface generates new PDDL problem instances by combining domain details with the current world state, publishing them as strings or writing them to file.
+ROS2 (Robot Operating System 2) is an open-source middleware framework designed to support the development of distributed, real-time robotic applications. Building upon the foundation of ROS1, ROS2 introduces improved communication paradigms, enhanced reliability, real-time capability, and cross-platform support, making it more suitable for both research and industrial deployment.
 
-Once a problem instance is generated, the Planner Interface invokes an external AI planner. Acting as a wrapper, it supplies the domain and problem files, calls the planner via a configurable command line, and reports whether a valid plan was found. The resulting plan is then processed by the Parsing Interface, which translates the raw planner output into structured ROS messages that can be executed within the system.
+At its core, ROS2 is structured around nodes, which are independent processes that communicate through a decentralized publish/subscribe architecture. Nodes exchange messages over topics, invoke synchronous operations through services, and trigger asynchronous long-running tasks via actions. This modular design ensures scalability and flexibility for complex robotic systems. The underlying communication is handled through the Data Distribution Service (DDS), providing discovery, quality-of-service (QoS) policies, and secure data exchange between distributed components.
 
-The execution stage is managed by Plan Dispatch, which subscribes to plan topics and coordinates the enactment of individual actions. Each action in the parsed plan is linked to the relevant ROS processes responsible for carrying it out, enabling seamless integration between high-level symbolic plans and low-level robot control.
+The ROS2 execution model is further supported by concepts such as parameters for runtime configuration, launch files for orchestrating multiple nodes, and lifecycle management for robust system control. Additionally, the framework introduces tools such as \texttt{ros2cli} for command-line interaction, \texttt{rclcpp}/\texttt{rclpy} for C++ and Python client libraries, and \texttt{rviz2} for visualization. Together, these components form an ecosystem that simplifies robotic software integration while maintaining performance and portability across platforms.
 
-Together, these nodes form a closed deliberation loop that unifies symbolic AI planning with ROS. ROSPlan thereby enables robots to progress from goals such as “navigate to room B and deliver the package” to actual coordinated actions, while maintaining modularity, transparency, and reusability across robotic domains. Its layered architecture provides a foundation for building robust, goal-driven autonomy in service robotics, multi-robot coordination, and other AI-enabled robotic applications~\cite{ros-plan}.
+ROS2 represents a shift from experimental middleware to a production-ready robotics framework. Its modularity, DDS-based communication, and lifecycle-aware design provide strong technical backing for robotics research and application development, though challenges such as system complexity and tuning persist~\cite{ros2-doc}.
 
 \subsection{MoveIt2}
 
