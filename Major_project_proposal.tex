@@ -294,56 +294,31 @@ We integrated CLIP embeddings with a curated tool embedding set covering 15 tool
     \label{fig: clips_img}
 \end{figure}
 
-
 By combining SAM segmentation with our refinement step and CLIP classification, we achieved more reliable object labeling across the dataset. Classification accuracy improved in terms of both stability (fewer duplicate predictions) and confidence values. We will extend the refinement module with embedding similarity checks to further improve mask consolidation. This will prepare the data flow for the third stage of the pipeline which is grasp synthesis.
 
-
-
-
-
-\subsubsection{Planning}
-
-\textbf{Symbolic Representation} \\
-We decided to use PDDL as our symbolic representation for our problem. Planning Domain Definition Language (PDDL), which is discussed in further details in Section~\ref{sec: pddl} is a standardized language for modeling automated planning problems in artificial intelligence. Our exploration has focused on using large language models (LLMs) and multimodal language models (MLLMs) to automatically generate PDDL code from high-level task inputs. The idea is to reduce the gap between human task descriptions (in natural language or images) and the formal specifications required by planners.
-
-In this approach, We designed a workflow where:
-\begin{itemize}
-
-\item Environment images are processed by an MLLM to extract structured details (e.g., objects, spatial relations, constraints), which are then translated into the domain model of PDDL.
-
-\item Textual task instructions are provided to the LLM, which generates the corresponding goal conditions and relevant actions.
-
-\item A LangChain-based agent orchestrates the process, giving the LLM access to multiple tools: one for querying the image model for clarification of environment details, and another for interactively querying the user to resolve ambiguities in the textual instructions.
-
-\end{itemize}
-
-Once the PDDL code is generated, We use the Fast Downward planner to find the solution for the defined problem.
-
-Through this exploration, We have begun to identify the challenges of automating PDDL generation. These include ensuring syntactic correctness, capturing accurate action preconditions and effects, and handling underspecified or ambiguous task instructions. At the same time, the results demonstrate the potential of combining LLM reasoning, multimodal perception, and interactive tool use to streamline the process of translating high-level descriptions into structured planning problems.
-
-\subsubsection{Simulation}
+\subsubsection{Planning and Simulation}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\linewidth]{images/setup.png}
-    \caption{Shared Computer Setup at Chulapat 14}
-    \label{fig: setup}
+    \includegraphics[width=\linewidth]{images/rviz_planning.png}
+    \caption{UR5 with Robotiq 2F-85 gripper controlled via MoveIt2 in RViz}
+    \label{fig: rviz-planning}
 \end{figure}
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\linewidth]{images/isaac_ur.png}
-    \caption{UR ARM 3e with Robotiq Gripper in Isaac Sim}
-    \label{fig: isaac-sim-ur}
-\end{figure}
+The primary goal this semester is to establish a complete planning and simulation pipeline for the UR5 robotic arm with a Robotiq 2F-85 gripper. The setup is designed to reflect the physical hardware that will be deployed in future experiments, while enabling safe and flexible testing in simulation.
 
-The simulation environment was set up on a shared computer located in room 9019-1, 9th floor, Chulapat 14 Building, as shown in Figure~\ref{fig: setup}. This room also houses the UR robotic arm that will be used for physical experiments in the following semester. For the current semester, however, the focus is entirely on simulation.
+We first ensured reliable communication between Isaac Sim, running on the Windows host machine, and ROS2 Humble, running inside Ubuntu 22.04 on WSL2. On top of this, we integrated MoveIt2 to handle motion planning using planners from the OMPL library. A custom URDF model of the UR5 with the Robotiq 2F-85 gripper was created, and a corresponding MoveIt2 configuration package was generated. This configuration was successfully imported into Isaac Sim, allowing ROS2 and MoveIt2 to control the robot.
 
-To simulate robot control, we installed Isaac Sim on the shared computer. Since the long-term plan involves controlling the UR arm through ROS2, we configured the Isaac Sim ROS2 bridge, which allows the simulated robot to be controlled via ROS2 nodes. The simulation stack was deployed in a hybrid environment: Isaac Sim running on Windows, while ROS2 Humble was installed and run inside Ubuntu 22.04 on WSL2 on the same machine.
+The connection was validated in two ways: (1) interactively, by setting target poses through RViz (Figure~\ref{fig: rviz-planning}), and (2) programmatically, using a simple C++ script to specify and execute target positions. Both approaches confirmed correct integration between Isaac Sim, ROS2, and MoveIt2.
 
-Isaac Sim provides built-in models for the UR3e robotic arm and the Robotiq gripper, as shown in Figure~\ref{fig: isaac-sim-ur}, both of which are the intended hardware components for future deployment. To maintain consistency between simulation and hardware, we also set up the official Universal Robots ROS2 driver~\cite{urarm-ros2}. The driver was successfully installed and tested; however, its documentation currently focuses on integration with URSim, the manufacturer’s own simulator, rather than with Isaac Sim. As a result, integrating the ROS2 driver with Isaac Sim presents additional challenges that we are still investigating.
+To enable obstacle-aware planning, we incorporated perception into the pipeline by adding an Intel RealSense D435i depth camera to the Isaac Sim environment. An action graph was created to publish point clouds to \texttt{/camera\_1/points} and RGB frames to \texttt{/rgb}, with the camera’s static transform published to \texttt{/tf\_static}. Visualization in RViz confirmed successful reception of point clouds, and we demonstrated planning around obstacles created in Isaac Sim using this data.
 
-In summary, the simulation environment is now operational with Isaac Sim and the ROS2 bridge, providing a foundation for testing planning and control pipelines in a simulated setting before moving to physical hardware next semester. The next milestone will be establishing integration between the official UR ROS2 driver and Isaac Sim, which will ensure compatibility between the simulated workflows and the physical UR arm.
+Despite these advances, the Robotiq 2F-85 gripper remains problematic. Isaac Sim struggles with closed-loop structures, and the gripper’s motion is not yet simulated correctly. This requires additional setup, which we are currently investigating.  
+
+As a contingency, we set up a parallel simulation environment in Gazebo, running natively on Ubuntu 22.04 within WSL2. The UR5 with the Robotiq 2F-85 gripper was successfully configured in Gazebo, and communication with ROS2 and MoveIt2 was verified. Although Gazebo offers a simpler and more stable integration path, its lower realism, particularly in handling complex collision geometries such as engineering tools, makes it less suitable for the final system. Our strategy is therefore to prioritize Isaac Sim while keeping Gazebo as a reliable fallback.
+
+In summary, the low-level planning and simulation stack is now operational across both Isaac Sim and Gazebo. We have demonstrated integration of ROS2, MoveIt2, and perception-enabled planning, and verified collision-free trajectories in a simulated environment. Remaining tasks include resolving the gripper simulation challenges in Isaac Sim and refining the setup for pick-and-place and handover scenarios.
+
 
 \newpage
 \section{Project Planning}
