@@ -300,25 +300,22 @@ By combining SAM segmentation with our refinement step and CLIP classification, 
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\linewidth]{images/rviz_planning.png}
-    \caption{UR5 with Robotiq 2F-85 gripper controlled via MoveIt2 in RViz}
-    \label{fig: rviz-planning}
+    \includegraphics[width=\linewidth]{images/gazebo_setup.png}
+    \caption{UR5 with Robotiq 2F-85 gripper and depth camera in Gazebo simulation environment}
+    \label{fig: gazebo-setup}
 \end{figure}
 
-The primary goal this semester is to establish a complete planning and simulation pipeline for the UR5 robotic arm with a Robotiq 2F-85 gripper. The setup is designed to reflect the physical hardware that will be deployed in future experiments, while enabling safe and flexible testing in simulation.
+At the beginning of the semester, we explored simulation in Isaac Sim due to its high visual fidelity and strong integration with ROS2. We were able to import the UR5 robotic arm with a Robotiq 2F-85 gripper, connect it to ROS2 and MoveIt2, and verify planning using both RViz and a custom C++ script. We also integrated an Intel RealSense D435i depth camera and confirmed that perception-enabled planning around obstacles was functional. However, we encountered significant difficulties in simulating the Robotiq 2F-85 gripper: Isaac Sim struggles with closed-loop structures, and despite our efforts, the gripper motion was not simulated correctly. This limitation hindered progress on pick-and-place tasks, which are central to our project.
 
-We first ensured reliable communication between Isaac Sim, running on the Windows host machine, and ROS2 Humble, running inside Ubuntu 22.04 on WSL2. On top of this, we integrated MoveIt2 to handle motion planning using planners from the OMPL library. A custom URDF model of the UR5 with the Robotiq 2F-85 gripper was created, and a corresponding MoveIt2 configuration package was generated. This configuration was successfully imported into Isaac Sim, allowing ROS2 and MoveIt2 to control the robot.
+Following further research into related works, particularly those involving vision-language-action (VLA) models and language-conditioned robotic manipulation, we observed that Gazebo is frequently adopted as the primary simulation environment. In light of this, we shifted our focus from Isaac Sim to Gazebo and began setting up our system there. This decision was motivated both by Gazebo’s widespread use in the literature and its robust integration with ROS2.
 
-The connection was validated in two ways: (1) interactively, by setting target poses through RViz (Figure~\ref{fig: rviz-planning}), and (2) programmatically, using a simple C++ script to specify and execute target positions. Both approaches confirmed correct integration between Isaac Sim, ROS2, and MoveIt2.
+Our current Gazebo environment includes a UR5 robotic arm equipped with a Robotiq 2F-85 gripper, a table for placing objects, and a downward-facing depth camera,as shown in Figure~\ref{fig: gazebo-setup}. Using the Gazebo ROS2 plugins, we have verified successful communication with the robot, gripper, and camera, ensuring that sensor data and control commands flow correctly through ROS2. This establishes the foundation for more advanced planning experiments.
 
-To enable obstacle-aware planning, we incorporated perception into the pipeline by adding an Intel RealSense D435i depth camera to the Isaac Sim environment. An action graph was created to publish point clouds to \texttt{/camera\_1/points} and RGB frames to \texttt{/rgb}, with the camera’s static transform published to \texttt{/tf\_static}. Visualization in RViz confirmed successful reception of point clouds, and we demonstrated planning around obstacles created in Isaac Sim using this data.
+We are now working toward enabling pick-and-place tasks in Gazebo, which is known to be a challenging problem due to the complexity of correctly setting up physics properties for object interaction. From our survey of existing solutions, many researchers avoid detailed physics modeling by using specialized plugins that attach an object to the gripper via a fixed joint when a grasp is detected. We tested such a plugin and confirmed that it functions, but in its current state it requires manual specification of the link names to attach, which makes the approach non-dynamic. Our next step is to extend this plugin to support dynamic attachment, thereby better simulating the picking and placing of arbitrary objects.
 
-Despite these advances, the Robotiq 2F-85 gripper remains problematic. Isaac Sim struggles with closed-loop structures, and the gripper’s motion is not yet simulated correctly. This requires additional setup, which we are currently investigating.  
+Additionally, we have reviewed benchmark environments used in VLA research, such as the Colosseum framework~\cite{colosseum}. While these benchmarks provide standardized setups for evaluating language-conditioned manipulation, they are primarily designed for training and testing end-to-end VLA models with curated datasets. Since our approach does not involve training in the same manner, these benchmarks may not be directly applicable. Nevertheless, they remain of interest as potential inspiration for structuring and evaluating our own simulation tasks.
 
-As a contingency, we set up a parallel simulation environment in Gazebo, running natively on Ubuntu 22.04 within WSL2. The UR5 with the Robotiq 2F-85 gripper was successfully configured in Gazebo, and communication with ROS2 and MoveIt2 was verified. Although Gazebo offers a simpler and more stable integration path, its lower realism, particularly in handling complex collision geometries such as engineering tools, makes it less suitable for the final system. Our strategy is therefore to prioritize Isaac Sim while keeping Gazebo as a reliable fallback.
-
-In summary, the low-level planning and simulation stack is now operational across both Isaac Sim and Gazebo. We have demonstrated integration of ROS2, MoveIt2, and perception-enabled planning, and verified collision-free trajectories in a simulated environment. Remaining tasks include resolving the gripper simulation challenges in Isaac Sim and refining the setup for pick-and-place and handover scenarios.
-
+In summary, our simulation pipeline began in Isaac Sim, where ROS2 integration and perception-driven planning were successfully demonstrated, but progress was limited by gripper simulation issues. We have since transitioned to Gazebo, where the environment is nearly complete with robot, gripper, camera, and table setup. Current efforts are focused on enabling realistic pick-and-place interactions through dynamic attachment, while also considering insights from benchmark simulation frameworks for future evaluation.
 
 \newpage
 \section{Project Planning}
