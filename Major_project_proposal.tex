@@ -299,13 +299,30 @@ By combining SAM segmentation with our refinement step and CLIP classification, 
 
 \subsubsection{Planning}
 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/ros2_graph.png}
+    \caption{High-level ROS2 Graph for Planning System}
+    \label{fig: ros2-graph}
+\end{figure}
+
 Our current focus in planning is on low-level path planning and trajectory generation using MoveIt2~\cite{moveit2}, chosen for its strong integration with ROS2. We generated a MoveIt configuration package for the UR5e arm with the Robotiq 2F-85 gripper from our URDF using the MoveIt Setup Assistant.
 
 Initial verification was done through the MoveIt2 GUI in RViz, confirming that inverse kinematics and trajectory planning worked correctly. We then extended control programmatically using the MoveIt2 C++ API by creating a ROS2 node, \texttt{moveit\_pose}, which hosts an action server \texttt{/plan\_execute\_pose}. This action takes a target end-effector pose and uses the \texttt{MoveGroupInterface} to plan and execute a trajectory from the current to the desired pose.
 
 The planning pipeline is functional but not yet robust—plans occasionally fail or produce inefficient motions. To improve this, we are exploring tighter joint constraints, Cartesian path planning for smoother linear motion, and direct joint-space control through custom actions and services.
 
-Overall, MoveIt2 provides a solid foundation for our motion planning pipeline, supporting both GUI and programmatic control while leaving room for refinement in reliability and trajectory quality.
+Beyond low-level motion planning, we have designed a hierarchical ROS2-based architecture consisting of five main nodes, as shown in Figure~\ref{fig: ros2-graph}, enabling modularity and extensibility across system layers:
+\begin{enumerate}
+    \item \textbf{vision:} Provides multiple perception-related services, including scene description, object classification, and object pose and position estimation.
+    \item \textbf{asr:} Hosts the \texttt{/get\_transcript} service, which captures speech input, performs transcription, and returns the resulting text. Future improvements may include text-to-speech for enhanced interactivity.
+    \item \textbf{high\_level\_planner:} Accesses all available services, receives high-level user instructions (via \texttt{/get\_transcript}), and decomposes them into structured subtasks.
+    \item \textbf{medium\_level\_planner:} Implements an action server to plan and execute these subtasks by converting them into “robot language” consisting of via-points and gripper actions.
+    \item \textbf{low\_level\_planner\_executor:} Handles path planning, trajectory generation, inverse kinematics, and motion execution, exposing corresponding services and action servers.
+\end{enumerate}
+
+This multi-layered design allows each component to be developed, replaced, or improved independently. The hierarchical decomposition of planning—from perception and language understanding down to motion execution—enables the robot to perform complex, long-horizon tasks while maintaining system modularity and flexibility.
+
 
 
 \subsubsection{Simulation}
