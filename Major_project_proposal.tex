@@ -7,6 +7,7 @@
 \usepackage{listings}
 \usepackage{hyperref}
 \usepackage{siunitx}
+\usepackage{microtype}
 \graphicspath{{images/}}
 
 \begin{document}
@@ -296,7 +297,18 @@ We integrated CLIP embeddings with a curated tool embedding set covering 15 tool
 
 By combining SAM segmentation with our refinement step and CLIP classification, we achieved more reliable object labeling across the dataset. Classification accuracy improved in terms of both stability (fewer duplicate predictions) and confidence values. We will extend the refinement module with embedding similarity checks to further improve mask consolidation. This will prepare the data flow for the third stage of the pipeline which is grasp synthesis.
 
-\subsubsection{Planning and Simulation}
+\subsubsection{Planning}
+
+Our current focus in planning is on low-level path planning and trajectory generation using MoveIt2~\cite{moveit2}, chosen for its strong integration with ROS2. We generated a MoveIt configuration package for the UR5e arm with the Robotiq 2F-85 gripper from our URDF using the MoveIt Setup Assistant.
+
+Initial verification was done through the MoveIt2 GUI in RViz, confirming that inverse kinematics and trajectory planning worked correctly. We then extended control programmatically using the MoveIt2 C++ API by creating a ROS2 node, \texttt{moveit\_pose}, which hosts an action server \texttt{/plan\_execute\_pose}. This action takes a target end-effector pose and uses the \texttt{MoveGroupInterface} to plan and execute a trajectory from the current to the desired pose.
+
+The planning pipeline is functional but not yet robust—plans occasionally fail or produce inefficient motions. To improve this, we are exploring tighter joint constraints, Cartesian path planning for smoother linear motion, and direct joint-space control through custom actions and services.
+
+Overall, MoveIt2 provides a solid foundation for our motion planning pipeline, supporting both GUI and programmatic control while leaving room for refinement in reliability and trajectory quality.
+
+
+\subsubsection{Simulation}
 
 \begin{figure}[h]
     \centering
@@ -305,17 +317,24 @@ By combining SAM segmentation with our refinement step and CLIP classification, 
     \label{fig: gazebo-setup}
 \end{figure}
 
-At the beginning of the semester, we explored simulation in Isaac Sim due to its high visual fidelity and strong integration with ROS2. We were able to import the UR5 robotic arm with a Robotiq 2F-85 gripper, connect it to ROS2 and MoveIt2, and verify planning using both RViz and a custom C++ script. We also integrated an Intel RealSense D435i depth camera and confirmed that perception-enabled planning around obstacles was functional. However, we encountered significant difficulties in simulating the Robotiq 2F-85 gripper: Isaac Sim struggles with closed-loop structures, and despite our efforts, the gripper motion was not simulated correctly. This limitation hindered progress on pick-and-place tasks, which are central to our project.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/ros2_sim_graph.png}
+    \caption{ROS2 Graph for Gazebo Simulation Setup}
+    \label{fig: ros2-sim-graph}
+\end{figure}
 
-Following further research into related works, particularly those involving vision-language-action (VLA) models and language-conditioned robotic manipulation, we observed that Gazebo is frequently adopted as the primary simulation environment. In light of this, we shifted our focus from Isaac Sim to Gazebo and began setting up our system there. This decision was motivated both by Gazebo’s widespread use in the literature and its robust integration with ROS2.
+Our simulation initially began in Isaac Sim, where we verified ROS2 integration, motion planning with MoveIt2, and perception-enabled obstacle avoidance using a UR5 robot, Robotiq 2F-85 gripper, and Intel RealSense D435i camera. However, Isaac Sim’s limitations in handling closed-loop mechanisms prevented proper gripper motion, making it complex and difficult to simulate pick-and-place tasks.
 
-Our current Gazebo environment includes a UR5 robotic arm equipped with a Robotiq 2F-85 gripper, a table for placing objects, and a downward-facing depth camera,as shown in Figure~\ref{fig: gazebo-setup}. Using the Gazebo ROS2 plugins, we have verified successful communication with the robot, gripper, and camera, ensuring that sensor data and control commands flow correctly through ROS2. This establishes the foundation for more advanced planning experiments.
+We therefore transitioned to Gazebo Classic, chosen over Gazebo Ignition (now \textit{Gazebo}) for plugin compatibility. The environment includes the UR5, Robotiq gripper, a table, and a downward-facing camera, as shown in Figure~\ref{fig: gazebo-setup}. ROS2 communication between the robot, gripper, and sensors is verified through standard Gazebo ROS2 interfaces.
 
-We are now working toward enabling pick-and-place tasks in Gazebo, which is known to be a challenging problem due to the complexity of correctly setting up physics properties for object interaction. From our survey of existing solutions, many researchers avoid detailed physics modeling by using specialized plugins that attach an object to the gripper via a fixed joint when a grasp is detected. We tested such a plugin and confirmed that it functions, but in its current state it requires manual specification of the link names to attach, which makes the approach non-dynamic. Our next step is to extend this plugin to support dynamic attachment, thereby better simulating the picking and placing of arbitrary objects.
+To address the challenge of simulating object grasping, we use the IFRA Link Attacher Plugin~\cite{ifra_link_attacher}, which provides the \texttt{/ATTACHLINK} and \texttt{/DETACHLINK} services to dynamically create or destroy fixed joints between links—effectively simulating gripping and releasing actions. A Gazebo contact sensor is mounted on the gripper finger link to detect collisions. Since contact data is only published internally within Gazebo, we implemented a custom plugin that forwards this data to a ROS2 topic \texttt{/contact}. A ROS2 node, \texttt{contact\_listener}, subscribes to this topic and calls \texttt{/ATTACHLINK} when contact with an object is detected.
 
-Additionally, we have reviewed benchmark environments used in VLA research, such as the Colosseum framework~\cite{colosseum}. While these benchmarks provide standardized setups for evaluating language-conditioned manipulation, they are primarily designed for training and testing end-to-end VLA models with curated datasets. Since our approach does not involve training in the same manner, these benchmarks may not be directly applicable. Nevertheless, they remain of interest as potential inspiration for structuring and evaluating our own simulation tasks.
+For releasing, we control the gripper via the ROS2 action\\\texttt{/gripper\_position\_controller/gripper\_cmd}\\. A wrapper node, \texttt{gripper}, exposing \texttt{gripper\_wrapper} action, forwards these commands while also publishing their status to \texttt{/gripper/monitor}. The \texttt{contact\_listener} subscribes to this topic and, when detecting that the gripper is opening, calls \texttt{/DETACHLINK} if any attachments exist. This combination enables dynamic, automated grasping and releasing behavior. A diagram of all ROS2 elements is shown in Figure~\ref{fig: ros2-sim-graph}.
 
-In summary, our simulation pipeline began in Isaac Sim, where ROS2 integration and perception-driven planning were successfully demonstrated, but progress was limited by gripper simulation issues. We have since transitioned to Gazebo, where the environment is nearly complete with robot, gripper, camera, and table setup. Current efforts are focused on enabling realistic pick-and-place interactions through dynamic attachment, while also considering insights from benchmark simulation frameworks for future evaluation.
+We also integrated our vision pipeline using the cv\_bridge~\cite{cv_bridge} package to convert Gazebo image messages into OpenCV-compatible formats. The simulation world includes models of engineering tools and parts for vision testing. However, many models have simplified collision geometries, which makes gripping small or slender parts difficult—a limitation we are actively addressing.
+
+In summary, the Gazebo Classic environment now provides a complete simulation of perception, planning, and dynamic grasping, forming a robust foundation for testing our integrated robotic system.
 
 \newpage
 \section{Project Planning}
