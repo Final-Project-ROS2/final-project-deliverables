@@ -349,7 +349,7 @@ To address the challenge of simulating object grasping, we use the IFRA Link Att
 
 For releasing, we control the gripper via the ROS2 action\\\texttt{/gripper\_position\_controller/gripper\_cmd}\\. A wrapper node, \texttt{gripper}, exposing \texttt{gripper\_wrapper} action, forwards these commands while also publishing their status to \texttt{/gripper/monitor}. The \texttt{contact\_listener} subscribes to this topic and, when detecting that the gripper is opening, calls \texttt{/DETACHLINK} if any attachments exist. This combination enables dynamic, automated grasping and releasing behavior. A diagram of all ROS2 elements is shown in Figure~\ref{fig: ros2-sim-graph}.
 
-We also integrated our vision pipeline using the cv\_bridge~\cite{cv_bridge} package to convert Gazebo image messages into OpenCV-compatible formats. The simulation world includes models of engineering tools and parts for vision testing. However, many models have simplified collision geometries, which makes gripping small or slender parts difficult—a limitation we are actively addressing.
+We also integrated our vision pipeline using the cv\_bridge~\cite{cv_bridge} package to convert Gazebo image messages into OpenCV-compatible formats. The simulation world includes models of engineering tools and parts for vision testing. However, many models have simplified collision geometries, which makes gripping small or slender parts difficult. Our advisor has advised us to use the simulation for the path planning and trajectory generation, while the grasping will be tested on the real robot.
 
 In summary, the Gazebo Classic environment now provides a complete simulation of perception, planning, and dynamic grasping, forming a robust foundation for testing our integrated robotic system.
 
@@ -611,6 +611,15 @@ MoveIt2 shifts motion planning from isolated libraries toward a flexible, extens
     \caption{MoveIt2 motion planning pipeline.}
     \label{fig:moveit_pipeline}
 \end{figure}
+
+\subsection{Gazebo}
+
+Gazebo is an open-source robotics simulation platform that enables realistic, high-fidelity simulation of robots, sensors, and environments. It allows developers to test algorithms, design robots, and train AI models in a virtual setting before deploying on hardware.
+
+Gazebo uses a modular architecture, separating physics, rendering, sensor simulation, and communication. The server handles physics and sensor updates, while the client provides visualization and user interaction. Robots and environments are described using the Simulation Description Format (SDF), and plugins extend functionality for custom behaviors and controllers.
+
+Integrated with ROS, Gazebo allows seamless simulation-to-hardware transitions. Its strengths include realistic physics, sensor modeling, and extensibility through plugins, making it suitable for research, education, and development of both single and multi-robot systems~\cite{gazebo}
+
 
 \subsection{Artificial Intelligence in Image Processing}
 
