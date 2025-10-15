@@ -50,3 +50,4 @@ build/
 *.bcf 
 *.pyg
 *.pdf
+.DS_Store
