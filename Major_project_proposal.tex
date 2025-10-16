@@ -353,6 +353,23 @@ We also integrated our vision pipeline using the cv\_bridge~\cite{cv_bridge} pac
 
 In summary, the Gazebo Classic environment now provides a complete simulation of perception, planning, and dynamic grasping, forming a robust foundation for testing our integrated robotic system.
 
+\subsubsection{Hardware}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/sim_vs_real.png}
+\caption{Comparison between Simulation (Gazebo) and Real Hardware Setup (UR3e with Robotiq HandE gripper at Chulapat 14 Robotics Lab)}
+\label{fig: sim-vs-real}
+\end{figure}
+
+For connecting with the real hardware, we first set up a dual-boot environment on our computer to run Ubuntu 22.04 natively, instead of using the previous Windows Subsystem for Linux (WSL) configuration. This change significantly reduces network complexity and communication latency between the computer and the UR arm, ensuring smoother and more reliable control.
+
+We use the official Universal Robots ROS2 Driver~\cite{ur_ros2_driver}, which directly interfaces with the UR arm and replaces Gazebo in our simulation setup. The driver provides a standardized ROS2 interface to the physical robot and comes with the \texttt{ur\_moveit\_config} package, enabling us to use MoveIt2 for path planning, trajectory generation, and motion execution on the real UR arm.
+
+Our setup uses the UR3e robot equipped with a Robotiq HandE gripper located at the Chulapat 14 Robotics Lab. The UR3e already includes the necessary software to support ROS2 communication through the External Control URCap. We connect our computer to the UR control box via a dedicated Ethernet cable and configure the computer’s network interface to the IP address \texttt{10.10.0.5}, as expected by the robot. Once the connection is established, we launch the External Control program on the robot’s teach pendant and verify successful communication by commanding robot motions through the ROS2 driver and MoveIt2 interface.
+
+To ensure seamless interoperability between simulation and hardware, we modified our existing node to support both environments. The changes include dynamically adjusting the MoveIt2 move group name and toggling the \texttt{use\_sim\_time} parameter depending on whether the system is operating in Gazebo or on the real robot. We verified that the same service and action calls produced identical behavior in both the simulation and the real hardware environment, confirming consistent motion planning and execution across both setups.
+
 \newpage
 \section{Project Planning}
 The project is structured around four primary technical area of concentration exluding any relevant paperwork tasks. These align seamlessly with the core enhancements, which will all be implemented in parallel: \textbf{image processing, speech processing, planning algorithms, and robotic arm integration}.  The planned timeline is structured into weekly milestones to ensure iterative progress and early validation 
