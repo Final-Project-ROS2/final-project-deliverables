@@ -295,7 +295,51 @@ We integrated CLIP embeddings with a curated tool embedding set covering 15 tool
     \label{fig: clips_img}
 \end{figure}
 
-By combining SAM segmentation with our refinement step and CLIP classification, we achieved more reliable object labeling across the dataset. Classification accuracy improved in terms of both stability (fewer duplicate predictions) and confidence values. We will extend the refinement module with embedding similarity checks to further improve mask consolidation. This will prepare the data flow for the third stage of the pipeline which is grasp synthesis.
+By combining SAM segmentation with our refinement step and CLIP classification, we achieved more reliable object labeling across the dataset. Classification accuracy improved in terms of both stability (fewer duplicate predictions) and confidence values.
+
+After implementing the segmentation and classification stages, we successfully completed the third and fourth stages of the vision pipeline: \textbf{grasp synthesis} and \textbf{scene understanding}. These modules mark a major step toward an end-to-end visual reasoning system capable of supporting robotic manipulation and navigation. \
+
+\textbf{Grasp Synthesis} \
+The grasp synthesis stage was implemented using the \textbf{GraspNet} framework~\cite{hanwen2024_grasp}, which predicts 6-DoF grasp configurations for segmented objects. As our depth camera has not yet arrived, we used curated RGB images from online sources combined with synthetic depth approximations to evaluate the performance of the complete perception pipeline. Each segmented region from SAM was converted into an object-centric point cloud and passed to GraspNet for grasp prediction. Despite the lack of real-world depth data, the synthesized pipeline demonstrated reliable grasp candidate generation, particularly for well-defined tools such as screwdrivers, hammers, and wrenches.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.5\linewidth]{images/graspnet_img.png}
+\caption{Example of grasp synthesis results on internet-sourced RGB images. Predicted 6-DoF grasp poses are visualized with orientation markers.}
+\label{fig: grasp_result}
+\end{figure}
+
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{images/RGB-Dep.png}
+\caption{A synthetic RGB-Depth image generated from an online RGB source using monocular depth estimation.}
+\label{fig: grasp_result}
+\end{figure}
+
+
+\textbf{Scene Understanding} \
+To extend the pipeline beyond individual object recognition, we implemented a scene understanding module that enables spatial reasoning between objects. By leveraging object centroids and bounding box coordinates derived from the segmentation and classification stages, the system can describe relative spatial relationships such as “the screwdriver is on the right of the pliers” or “the wrench is above the hammer.” This functionality was further enhanced using a lightweight Vision-Language Model (VLM) that supports contextual reasoning, allowing the robot to infer object grouping and hierarchical arrangements within a workspace.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.5\linewidth]{images/scene_understanding.png}
+\caption{Scene understanding results illustrating relative spatial relationships between detected tools.}
+\label{fig: scene_understanding}
+\end{figure}
+
+To facilitate real-time interaction with robotic hardware, the completed perception pipeline—comprising SAM, CLIP, GraspNet, and Scene Understanding modules—was connected to a \textbf{ROS (Robot Operating System)} node. The pipeline publishes detection and grasping results as ROS topics, enabling seamless communication with motion planning and control modules. This setup establishes a modular framework that can be easily extended or replaced with higher-level planners.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{images/pipeline_image.png}
+\caption{The complete vision pipeline from perception to reasoning. Demonstrating the progressive transformation of raw input data structured semantic and geometric understanding.}
+\label{fig: grasp_result}
+\end{figure}
+
+
+In the upcoming phase, we will migrate the system to \textbf{ROS2} to enhance communication efficiency, scalability, and real-time performance across distributed nodes. Once the depth camera arrives, we will replace the synthetic image data with live RGB-D inputs to improve the accuracy of grasp synthesis and spatial reasoning. Additionally, we plan to refine image preprocessing and depth camera calibration to achieve higher visual accuracy, thereby simplifying path planning and manipulation tasks for the robot.
+
 
 \subsubsection{Planning}
 
