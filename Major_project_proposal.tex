@@ -7,6 +7,7 @@
 \usepackage{listings}
 \usepackage{hyperref}
 \usepackage{siunitx}
+\usepackage{microtype}
 \graphicspath{{images/}}
 
 \begin{document}
@@ -294,56 +295,80 @@ We integrated CLIP embeddings with a curated tool embedding set covering 15 tool
     \label{fig: clips_img}
 \end{figure}
 
-
 By combining SAM segmentation with our refinement step and CLIP classification, we achieved more reliable object labeling across the dataset. Classification accuracy improved in terms of both stability (fewer duplicate predictions) and confidence values. We will extend the refinement module with embedding similarity checks to further improve mask consolidation. This will prepare the data flow for the third stage of the pipeline which is grasp synthesis.
-
-
-
-
 
 \subsubsection{Planning}
 
-\textbf{Symbolic Representation} \\
-We decided to use PDDL as our symbolic representation for our problem. Planning Domain Definition Language (PDDL), which is discussed in further details in Section~\ref{sec: pddl} is a standardized language for modeling automated planning problems in artificial intelligence. Our exploration has focused on using large language models (LLMs) and multimodal language models (MLLMs) to automatically generate PDDL code from high-level task inputs. The idea is to reduce the gap between human task descriptions (in natural language or images) and the formal specifications required by planners.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/ros2_graph.png}
+    \caption{High-level ROS2 Graph for Planning System}
+    \label{fig: ros2-graph}
+\end{figure}
 
-In this approach, We designed a workflow where:
-\begin{itemize}
+Our current focus in planning is on low-level path planning and trajectory generation using MoveIt2~\cite{moveit2}, chosen for its strong integration with ROS2. We generated a MoveIt configuration package for the UR5e arm with the Robotiq 2F-85 gripper from our URDF using the MoveIt Setup Assistant.
 
-\item Environment images are processed by an MLLM to extract structured details (e.g., objects, spatial relations, constraints), which are then translated into the domain model of PDDL.
+Initial verification was done through the MoveIt2 GUI in RViz, confirming that inverse kinematics and trajectory planning worked correctly. We then extended control programmatically using the MoveIt2 C++ API by creating a ROS2 node, \texttt{moveit\_pose}, which hosts an action server \texttt{/plan\_execute\_pose}. This action takes a target end-effector pose and uses the \texttt{MoveGroupInterface} to plan and execute a trajectory from the current to the desired pose.
 
-\item Textual task instructions are provided to the LLM, which generates the corresponding goal conditions and relevant actions.
+The planning pipeline is functional but not yet robust—plans occasionally fail or produce inefficient motions. To improve this, we are exploring tighter joint constraints, Cartesian path planning for smoother linear motion, and direct joint-space control through custom actions and services.
 
-\item A LangChain-based agent orchestrates the process, giving the LLM access to multiple tools: one for querying the image model for clarification of environment details, and another for interactively querying the user to resolve ambiguities in the textual instructions.
+Beyond low-level motion planning, we have designed a hierarchical ROS2-based architecture consisting of five main nodes, as shown in Figure~\ref{fig: ros2-graph}, enabling modularity and extensibility across system layers:
+\begin{enumerate}
+    \item \textbf{vision:} Provides multiple perception-related services, including scene description, object classification, and object pose and position estimation.
+    \item \textbf{asr:} Hosts the \texttt{/get\_transcript} service, which captures speech input, performs transcription, and returns the resulting text. Future improvements may include text-to-speech for enhanced interactivity.
+    \item \textbf{high\_level\_planner:} Accesses all available services, receives high-level user instructions (via \texttt{/get\_transcript}), and decomposes them into structured subtasks.
+    \item \textbf{medium\_level\_planner:} Implements an action server to plan and execute these subtasks by converting them into “robot language” consisting of via-points and gripper actions.
+    \item \textbf{low\_level\_planner\_executor:} Handles path planning, trajectory generation, inverse kinematics, and motion execution, exposing corresponding services and action servers.
+\end{enumerate}
 
-\end{itemize}
+This multi-layered design allows each component to be developed, replaced, or improved independently. The hierarchical decomposition of planning—from perception and language understanding down to motion execution—enables the robot to perform complex, long-horizon tasks while maintaining system modularity and flexibility.
 
-Once the PDDL code is generated, We use the Fast Downward planner to find the solution for the defined problem.
 
-Through this exploration, We have begun to identify the challenges of automating PDDL generation. These include ensuring syntactic correctness, capturing accurate action preconditions and effects, and handling underspecified or ambiguous task instructions. At the same time, the results demonstrate the potential of combining LLM reasoning, multimodal perception, and interactive tool use to streamline the process of translating high-level descriptions into structured planning problems.
 
 \subsubsection{Simulation}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\linewidth]{images/setup.png}
-    \caption{Shared Computer Setup at Chulapat 14}
-    \label{fig: setup}
+    \includegraphics[width=\linewidth]{images/gazebo_setup.png}
+    \caption{UR5 with Robotiq 2F-85 gripper and depth camera in Gazebo simulation environment}
+    \label{fig: gazebo-setup}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[h]
     \centering
-    \includegraphics[width=\linewidth]{images/isaac_ur.png}
-    \caption{UR ARM 3e with Robotiq Gripper in Isaac Sim}
-    \label{fig: isaac-sim-ur}
+    \includegraphics[width=\linewidth]{images/ros2_sim_graph.png}
+    \caption{ROS2 Graph for Gazebo Simulation Setup}
+    \label{fig: ros2-sim-graph}
 \end{figure}
 
-The simulation environment was set up on a shared computer located in room 9019-1, 9th floor, Chulapat 14 Building, as shown in Figure~\ref{fig: setup}. This room also houses the UR robotic arm that will be used for physical experiments in the following semester. For the current semester, however, the focus is entirely on simulation.
+Our simulation initially began in Isaac Sim, where we verified ROS2 integration, motion planning with MoveIt2, and perception-enabled obstacle avoidance using a UR5 robot, Robotiq 2F-85 gripper, and Intel RealSense D435i camera. However, Isaac Sim’s limitations in handling closed-loop mechanisms prevented proper gripper motion, making it complex and difficult to simulate pick-and-place tasks.
 
-To simulate robot control, we installed Isaac Sim on the shared computer. Since the long-term plan involves controlling the UR arm through ROS2, we configured the Isaac Sim ROS2 bridge, which allows the simulated robot to be controlled via ROS2 nodes. The simulation stack was deployed in a hybrid environment: Isaac Sim running on Windows, while ROS2 Humble was installed and run inside Ubuntu 22.04 on WSL2 on the same machine.
+We therefore transitioned to Gazebo Classic, chosen over Gazebo Ignition (now \textit{Gazebo}) for plugin compatibility. The environment includes the UR5, Robotiq gripper, a table, and a downward-facing camera, as shown in Figure~\ref{fig: gazebo-setup}. ROS2 communication between the robot, gripper, and sensors is verified through standard Gazebo ROS2 interfaces.
 
-Isaac Sim provides built-in models for the UR3e robotic arm and the Robotiq gripper, as shown in Figure~\ref{fig: isaac-sim-ur}, both of which are the intended hardware components for future deployment. To maintain consistency between simulation and hardware, we also set up the official Universal Robots ROS2 driver~\cite{urarm-ros2}. The driver was successfully installed and tested; however, its documentation currently focuses on integration with URSim, the manufacturer’s own simulator, rather than with Isaac Sim. As a result, integrating the ROS2 driver with Isaac Sim presents additional challenges that we are still investigating.
+To address the challenge of simulating object grasping, we use the IFRA Link Attacher Plugin~\cite{ifra_link_attacher}, which provides the \texttt{/ATTACHLINK} and \texttt{/DETACHLINK} services to dynamically create or destroy fixed joints between links—effectively simulating gripping and releasing actions. A Gazebo contact sensor is mounted on the gripper finger link to detect collisions. Since contact data is only published internally within Gazebo, we implemented a custom plugin that forwards this data to a ROS2 topic \texttt{/contact}. A ROS2 node, \texttt{contact\_listener}, subscribes to this topic and calls \texttt{/ATTACHLINK} when contact with an object is detected.
 
-In summary, the simulation environment is now operational with Isaac Sim and the ROS2 bridge, providing a foundation for testing planning and control pipelines in a simulated setting before moving to physical hardware next semester. The next milestone will be establishing integration between the official UR ROS2 driver and Isaac Sim, which will ensure compatibility between the simulated workflows and the physical UR arm.
+For releasing, we control the gripper via the ROS2 action\\\texttt{/gripper\_position\_controller/gripper\_cmd}\\. A wrapper node, \texttt{gripper}, exposing \texttt{gripper\_wrapper} action, forwards these commands while also publishing their status to \texttt{/gripper/monitor}. The \texttt{contact\_listener} subscribes to this topic and, when detecting that the gripper is opening, calls \texttt{/DETACHLINK} if any attachments exist. This combination enables dynamic, automated grasping and releasing behavior. A diagram of all ROS2 elements is shown in Figure~\ref{fig: ros2-sim-graph}.
+
+We also integrated our vision pipeline using the cv\_bridge~\cite{cv_bridge} package to convert Gazebo image messages into OpenCV-compatible formats. The simulation world includes models of engineering tools and parts for vision testing. However, many models have simplified collision geometries, which makes gripping small or slender parts difficult. Our advisor has advised us to use the simulation for the path planning and trajectory generation, while the grasping will be tested on the real robot.
+
+In summary, the Gazebo Classic environment now provides a complete simulation of perception, planning, and dynamic grasping, forming a robust foundation for testing our integrated robotic system.
+
+\subsubsection{Hardware}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/sim_vs_real.png}
+\caption{Comparison between Simulation (Gazebo) and Real Hardware Setup (UR3e with Robotiq HandE gripper at Chulapat 14 Robotics Lab)}
+\label{fig: sim-vs-real}
+\end{figure}
+
+For connecting with the real hardware, we first set up a dual-boot environment on our computer to run Ubuntu 22.04 natively, instead of using the previous Windows Subsystem for Linux (WSL) configuration. This change significantly reduces network complexity and communication latency between the computer and the UR arm, ensuring smoother and more reliable control.
+
+We use the official Universal Robots ROS2 Driver~\cite{ur_ros2_driver}, which directly interfaces with the UR arm and replaces Gazebo in our simulation setup. The driver provides a standardized ROS2 interface to the physical robot and comes with the \texttt{ur\_moveit\_config} package, enabling us to use MoveIt2 for path planning, trajectory generation, and motion execution on the real UR arm.
+
+Our setup uses the UR3e robot equipped with a Robotiq HandE gripper located at the Chulapat 14 Robotics Lab. The UR3e already includes the necessary software to support ROS2 communication through the External Control URCap. We connect our computer to the UR control box via a dedicated Ethernet cable and configure the computer’s network interface to the IP address \texttt{10.10.0.5}, as expected by the robot. Once the connection is established, we launch the External Control program on the robot’s teach pendant and verify successful communication by commanding robot motions through the ROS2 driver and MoveIt2 interface.
+
+To ensure seamless interoperability between simulation and hardware, we modified our existing node to support both environments. The changes include dynamically adjusting the MoveIt2 move group name and toggling the \texttt{use\_sim\_time} parameter depending on whether the system is operating in Gazebo or on the real robot. We verified that the same service and action calls produced identical behavior in both the simulation and the real hardware environment, confirming consistent motion planning and execution across both setups.
 
 \newpage
 \section{Project Planning}
@@ -494,26 +519,6 @@ Among the algorithms capable of handling a range of Natural Language Processing 
 Language Model (LLM) has not only frequently appeared in numerous past studies but has also
 showcased immense potential for generating plans, transforming an initial world state into a desired state~\cite{plangenllm}.
 
-\subsection{Hierarchical Reasoning Model (HRM)}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.5\linewidth]{images/hrm-arch.png}
-    \caption{Hierarchical Reasoning Model Architecture Inspired by the Brain (from~\cite{hrm})}
-    \label{fig:hrm-archictecture}
-\end{figure}
-
-The Hierarchical Reasoning Model (HRM) is a brain-inspired neural architecture designed to overcome the limitations of current Large Language Models (LLMs) in reasoning tasks. Whereas LLMs rely heavily on Chain-of-Thought (CoT) prompting, which breaks problems into text-based intermediate steps that are brittle, slow, and data-hungry, HRM performs reasoning entirely in its hidden state space. The model employs two recurrent modules operating at different timescales: a high-level module that conducts slow, abstract planning, and a low-level module that executes fast, detailed computations, as shown in Figure~\ref{fig:hrm-archictecture}. This division enables HRM to achieve substantial computational depth in a single forward pass, avoiding the premature convergence and training instability typical of recurrent networks. To further improve efficiency, HRM introduces a one-step gradient approximation, bypassing the heavy memory requirements of Backpropagation Through Time (BPTT) while maintaining stable learning dynamics~\cite{hrm}.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.8\linewidth]{images/hrm-bench.png}
-    \caption{Hierarchical Reasoning Model Performances on Complex Benchmarks (from~\cite{hrm})}
-    \label{fig:hrm-results}
-\end{figure}
-
-With only 27 million parameters and training on just 1,000 examples per task, HRM attains near-perfect performance on complex benchmarks such as Sudoku-Extreme and Maze-Hard, where state-of-the-art CoT-based LLMs fail entirely. It also surpasses much larger models on the Abstraction and Reasoning Corpus (ARC), a benchmark widely regarded as a measure of general reasoning ability, as shown in Figure~\ref{fig:hrm-results}. Notably, HRM achieves this without pre-training or access to CoT data, demonstrating strong sample efficiency and scalability. By integrating principles of hierarchical processing, temporal separation, and recurrent refinement—mirroring neural mechanisms in the brain—HRM represents a promising step toward universal computation and general-purpose reasoning systems that go beyond the shallow reasoning capacity of today’s LLMs~\cite{hrm}.
-
 \subsection{Vision Language Model (VLM)}
 \begin{figure}[htbp]
     \centering
@@ -589,24 +594,23 @@ A classic illustration is the Briefcase World. Here, moving the briefcase also m
 
 PDDL has evolved from its early versions, like PDDL 1.2, which used predicate logic with true/false properties and actions, to more expressive forms. PDDL 2.1 introduced durative actions and numeric fluents for modeling time and resources, while PDDL 2.2 added derived predicates and timed literals. PDDL 3.0 incorporated soft constraints and preferences with costs, and PDDL+ enabled modeling of processes and uncontrollable events. Specialized variants such as PPDDL, NDDL, and MADDL were later developed for domain-specific planning needs~\cite{pddl}.
 
-\subsection{ROSPlan}
+\subsection{ROS2}
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{images/ros_plan.png}
-    \caption{ROSPlan Architecture (from~\cite{ros-plan})}
-    \label{fig:ros-plan}
+    \includegraphics[width=\linewidth]{images/ros2_architecture.png}
+    \caption{ROS2 conceptual architecture, illustrating nodes, topics, services, and actions.}
+    \label{fig:ros2_architecture}
 \end{figure}
 
-ROSPlan is a framework that provides a structured collection of tools for integrating AI planning into robotic systems built on the Robot Operating System (ROS). Originally developed to bridge the gap between symbolic task planning and real-world robotic execution, ROSPlan encapsulates the entire deliberation cycle: knowledge representation, problem generation, planning, parsing, and plan execution. This modular design enables robots to autonomously reason about their environment, generate feasible plans, and reliably execute them in dynamic contexts.
 
-At its core, ROSPlan is composed of multiple dedicated nodes, each responsible for a specific stage in the planning pipeline, as shown in Figure~\ref{fig:ros-plan}. The Knowledge Base maintains both the PDDL domain model and the current problem instance, storing the state as a symbolic PDDL representation that can be queried or updated through ROS messages. Building on this, the Problem Interface generates new PDDL problem instances by combining domain details with the current world state, publishing them as strings or writing them to file.
+ROS2 (Robot Operating System 2) is an open-source middleware framework designed to support the development of distributed, real-time robotic applications. Building upon the foundation of ROS1, ROS2 introduces improved communication paradigms, enhanced reliability, real-time capability, and cross-platform support, making it more suitable for both research and industrial deployment.
 
-Once a problem instance is generated, the Planner Interface invokes an external AI planner. Acting as a wrapper, it supplies the domain and problem files, calls the planner via a configurable command line, and reports whether a valid plan was found. The resulting plan is then processed by the Parsing Interface, which translates the raw planner output into structured ROS messages that can be executed within the system.
+At its core, ROS2 is structured around nodes, which are independent processes that communicate through a decentralized publish/subscribe architecture. Nodes exchange messages over topics, invoke synchronous operations through services, and trigger asynchronous long-running tasks via actions. This modular design ensures scalability and flexibility for complex robotic systems. The underlying communication is handled through the Data Distribution Service (DDS), providing discovery, quality-of-service (QoS) policies, and secure data exchange between distributed components.
 
-The execution stage is managed by Plan Dispatch, which subscribes to plan topics and coordinates the enactment of individual actions. Each action in the parsed plan is linked to the relevant ROS processes responsible for carrying it out, enabling seamless integration between high-level symbolic plans and low-level robot control.
+The ROS2 execution model is further supported by concepts such as parameters for runtime configuration, launch files for orchestrating multiple nodes, and lifecycle management for robust system control. Additionally, the framework introduces tools such as \texttt{ros2cli} for command-line interaction, \texttt{rclcpp}/\texttt{rclpy} for C++ and Python client libraries, and \texttt{rviz2} for visualization. Together, these components form an ecosystem that simplifies robotic software integration while maintaining performance and portability across platforms.
 
-Together, these nodes form a closed deliberation loop that unifies symbolic AI planning with ROS. ROSPlan thereby enables robots to progress from goals such as “navigate to room B and deliver the package” to actual coordinated actions, while maintaining modularity, transparency, and reusability across robotic domains. Its layered architecture provides a foundation for building robust, goal-driven autonomy in service robotics, multi-robot coordination, and other AI-enabled robotic applications~\cite{ros-plan}.
+ROS2 represents a shift from experimental middleware to a production-ready robotics framework. Its modularity, DDS-based communication, and lifecycle-aware design provide strong technical backing for robotics research and application development, though challenges such as system complexity and tuning persist~\cite{ros2-doc}.
 
 \subsection{MoveIt2}
 
@@ -624,6 +628,15 @@ MoveIt2 shifts motion planning from isolated libraries toward a flexible, extens
     \caption{MoveIt2 motion planning pipeline.}
     \label{fig:moveit_pipeline}
 \end{figure}
+
+\subsection{Gazebo}
+
+Gazebo is an open-source robotics simulation platform that enables realistic, high-fidelity simulation of robots, sensors, and environments. It allows developers to test algorithms, design robots, and train AI models in a virtual setting before deploying on hardware.
+
+Gazebo uses a modular architecture, separating physics, rendering, sensor simulation, and communication. The server handles physics and sensor updates, while the client provides visualization and user interaction. Robots and environments are described using the Simulation Description Format (SDF), and plugins extend functionality for custom behaviors and controllers.
+
+Integrated with ROS, Gazebo allows seamless simulation-to-hardware transitions. Its strengths include realistic physics, sensor modeling, and extensibility through plugins, making it suitable for research, education, and development of both single and multi-robot systems~\cite{gazebo}
+
 
 \subsection{Artificial Intelligence in Image Processing}
 
