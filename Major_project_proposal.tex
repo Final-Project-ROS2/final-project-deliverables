@@ -253,7 +253,11 @@ This neuro-symbolic hybrid design ensures adaptability, efficiency, and user tra
 \subsection{The Current Development of the Project}
 
 \subsubsection{Speech}
-To establish a robust Automatic Speech Recognition (ASR) foundation for robot manipulation, a \textbf{real-time speech-to-text system} was developed and implemented as a \textbf{ROS2 node} using the AssemblyAI API. Unlike the initial prototype, which processed pre-recorded audio inputs such as \textit{harvard.wav}, the new system continuously captures live audio streams, transcribes them in real time, and publishes the recognized text for downstream processing. Additionally, if there is no speech input detected for \textbf{three seconds}, the node automatically stops listening and outputs the most recent transcription result. This enhancement enables more natural and efficient human-robot interaction by allowing immediate, context-aware responses to spoken commands. As shown in Figure~\ref{fig: ASR_Pipeline.png}, this real-time ASR module provides a modular and scalable interface for future integration with multimodal perception systems, where linguistic input can be combined with visual data from the robot’s environment.
+To establish a robust Automatic Speech Recognition (ASR) foundation for robot manipulation, a \textbf{real-time speech-to-text system} was developed and implemented as a \textbf{ROS2 node} using the \textbf{AssemblyAI API}. Unlike the initial prototype, which processed pre-recorded audio inputs such as \textit{harvard.wav}, the new system continuously captures live audio streams, transcribes them in real time, and publishes the recognized text for downstream processing. Additionally, if no speech input is detected for \textbf{three seconds}, the node automatically stops listening and outputs the most recent transcription result.
+
+AssemblyAI serves as the core transcription engine, leveraging advanced \textbf{deep learning models} to convert speech into accurate text through a structured pipeline that includes \textit{feature extraction}, \textit{acoustic modeling}, \textit{language modeling}, and \textit{decoding}. These stages enable the system to handle diverse speech patterns and environmental noise effectively. Furthermore, post-processing mechanisms such as punctuation restoration, capitalization, and disfluency removal enhance the clarity and readability of the generated text.
+
+As illustrated in Figure~\ref{fig: ASR_Pipeline.png}, the implemented ASR node operates through a continuous loop of capturing live microphone input, sending it as a transcription job, polling for recognition results, and checking for further user input. When no speech is detected within three seconds, the node terminates the current session and publishes the final transcription output. This workflow provides a \textbf{modular and scalable interface} that enables responsive and context-aware communication between humans and robots, supporting future integration with multimodal perception systems.
 
 \begin{figure}[H]
     \centering
@@ -512,13 +516,13 @@ The development of the image processing module is proceeding on schedule and has
 
 \subsubsection{Speech Processing}
 
+The development of the Automatic Speech Recognition (ASR) module is proceeding on schedule and has entered the system integration phase. Core functionalities, including live audio capture, real-time transcription, silence detection, and ROS2 publishing, have been successfully implemented and validated through controlled tests. The development has now entered the integration phase, focusing on seamless communication with the \textbf{real-world UR-ARM}. Ongoing work involves integrating the ASR outputs with the robot's control modules to enable end-to-end speech-driven manipulation.
+
 \subsubsection{Planning Algorithm}
 The current progress is on schedule, with low-level motion planning and execution successfully implemented and verified through simulation and programmatic control. The system can now autonomously plan and execute trajectories, though ongoing refinements aim to improve reliability and efficiency. Development is advancing toward high-level planning and integration with the perception module within a hierarchical, modular architecture that enables coordinated, extensible, and intelligent robot behavior across all system layers.
 
 \subsubsection{Interface with Robot Arm}
 The simulation environment has been fully developed and is now ready for integration with perception and planning modules. Dynamic grasping enables end-to-end testing of the robotic system. Initial challenges with gripper motion led to a transition to a more compatible setup, where object interaction and motion execution now function reliably. The current progress is on schedule, with the simulation serving as a robust platform for validating motion planning and perception integration before transferring grasping tests to the real hardware.
-
-
 
 \newpage
 \section{Theory and Technical Backup}
