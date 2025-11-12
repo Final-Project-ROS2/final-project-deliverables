@@ -356,76 +356,37 @@ In the upcoming phase, we will migrate the system to \textbf{ROS2} to enhance co
 
 \subsubsection{Planning}
 
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{images/ros2_graph.png}
-    \caption{High-level ROS2 Graph for Planning System}
-    \label{fig: ros2-graph}
-\end{figure}
+% \begin{figure}[h]
+% \centering
+% \includegraphics[width=\linewidth]{images/planning_architecture_updated.png}
+% \caption{Updated ROS2 Graph for the Hierarchical Planning System}
+% \label{fig:planning-ros2-graph}
+% \end{figure}
 
-Our current focus in planning is on low-level path planning and trajectory generation using MoveIt2~\cite{moveit2}, chosen for its strong integration with ROS2. We generated a MoveIt configuration package for the UR5e arm with the Robotiq 2F-85 gripper from our URDF using the MoveIt Setup Assistant.
+Significant progress has been made in improving both the robustness and the intelligence of the planning system. At the low level, we enhanced the \texttt{low\_level\_planner\_executor} node by tightening joint constraints and enforcing Cartesian (linear) path execution rather than free-form trajectories. This change improves motion predictability and safety. 
 
-Initial verification was done through the MoveIt2 GUI in RViz, confirming that inverse kinematics and trajectory planning worked correctly. We then extended control programmatically using the MoveIt2 C++ API by creating a ROS2 node, \texttt{moveit\_pose}, which hosts an action server \texttt{/plan\_execute\_pose}. This action takes a target end-effector pose and uses the \texttt{MoveGroupInterface} to plan and execute a trajectory from the current to the desired pose.
+The \texttt{low\_level\_planner\_executor} node now hosts multiple dedicated action servers, expanding its capability for modular motion control:
+\begin{itemize}
+\item \texttt{/plan\_cartesian\_relative}: Performs linear movement relative to the current end-effector position.
+\item \texttt{/get\_current\_pose} and \texttt{/get\_joint\_angles}: Retrieve the current Cartesian pose and joint configurations, respectively.
+\item \texttt{/set\_joint\_angles}: Commands the robot to specific joint positions.
+\item \texttt{/plan\_complex\_cartesian\_steps}: Moves the end-effector linearly to a specified pose by decomposing the motion into smaller axis-wise steps.
+\end{itemize}
 
-The planning pipeline is functional but not yet robust—plans occasionally fail or produce inefficient motions. To improve this, we are exploring tighter joint constraints, Cartesian path planning for smoother linear motion, and direct joint-space control through custom actions and services.
+At the next layer, the \texttt{medium\_level\_planner} node was developed to bridge high-level reasoning and low-level execution. This node integrates an AI agent built using LangChain, which dynamically selects and calls the available low-level planner actions as “tools.” It hosts the \texttt{/medium\_level} action server, responsible for receiving and executing subtasks sent from the high-level planner.
 
-Beyond low-level motion planning, we have designed a hierarchical ROS2-based architecture consisting of five main nodes, as shown in Figure~\ref{fig: ros2-graph}, enabling modularity and extensibility across system layers:
+The \texttt{high\_level\_planner} node was also implemented with two approaches:
 \begin{enumerate}
-    \item \textbf{vision:} Provides multiple perception-related services, including scene description, object classification, and object pose and position estimation.
-    \item \textbf{asr:} Hosts the \texttt{/get\_transcript} service, which captures speech input, performs transcription, and returns the resulting text. Future improvements may include text-to-speech for enhanced interactivity.
-    \item \textbf{high\_level\_planner:} Accesses all available services, receives high-level user instructions (via \texttt{/get\_transcript}), and decomposes them into structured subtasks.
-    \item \textbf{medium\_level\_planner:} Implements an action server to plan and execute these subtasks by converting them into “robot language” consisting of via-points and gripper actions.
-    \item \textbf{low\_level\_planner\_executor:} Handles path planning, trajectory generation, inverse kinematics, and motion execution, exposing corresponding services and action servers.
+\item \textbf{LLM-Direct Planning:} An AI agent directly generates a structured sequence of subtasks and corresponding actions to be sent to the \texttt{medium\_level\_planner} for execution.
+\item \textbf{Symbolic Planning (PDDL-Based):} The AI agent generates a PDDL problem and domain file from natural language commands. These are then solved by a symbolic planner (FastDownward) to produce an executable plan.
 \end{enumerate}
+In both cases, the resulting plan—a list of actions—is displayed to the user for confirmation. The user can review, modify, or reject any step using natural language before the plan is passed to the \texttt{medium\_level\_planner} for execution.
 
-This multi-layered design allows each component to be developed, replaced, or improved independently. The hierarchical decomposition of planning—from perception and language understanding down to motion execution—enables the robot to perform complex, long-horizon tasks while maintaining system modularity and flexibility.
+Both planner nodes (\texttt{high\_level\_planner} and \texttt{medium\_level\_planner}) are designed to interface with perception modules by accessing services provided by the \texttt{vision} node as additional reasoning tools. Furthermore, safety and emergency handling have been improved by enabling the \\ \texttt{low\_level\_planner\_executor} to subscribe to the \texttt{/emergency} topic, which can immediately halt motion if the \texttt{asr} node detects the emergency keyword.
 
+The system architecture was also updated, as show in Figure~\ref{fig:planning-ros2-graph} such that the \texttt{asr} node now publishes transcribed speech to the \texttt{/transcript} topic upon detecting the activation keyword, simplifying communication flow compared to the previous service-based design.
 
-
-\subsubsection{Simulation}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{images/gazebo_setup.png}
-    \caption{UR5 with Robotiq 2F-85 gripper and depth camera in Gazebo simulation environment}
-    \label{fig: gazebo-setup}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{images/ros2_sim_graph.png}
-    \caption{ROS2 Graph for Gazebo Simulation Setup}
-    \label{fig: ros2-sim-graph}
-\end{figure}
-
-Our simulation initially began in Isaac Sim, where we verified ROS2 integration, motion planning with MoveIt2, and perception-enabled obstacle avoidance using a UR5 robot, Robotiq 2F-85 gripper, and Intel RealSense D435i camera. However, Isaac Sim’s limitations in handling closed-loop mechanisms prevented proper gripper motion, making it complex and difficult to simulate pick-and-place tasks.
-
-We therefore transitioned to Gazebo Classic, chosen over Gazebo Ignition (now \textit{Gazebo}) for plugin compatibility. The environment includes the UR5, Robotiq gripper, a table, and a downward-facing camera, as shown in Figure~\ref{fig: gazebo-setup}. ROS2 communication between the robot, gripper, and sensors is verified through standard Gazebo ROS2 interfaces.
-
-To address the challenge of simulating object grasping, we use the IFRA Link Attacher Plugin~\cite{ifra_link_attacher}, which provides the \texttt{/ATTACHLINK} and \texttt{/DETACHLINK} services to dynamically create or destroy fixed joints between links—effectively simulating gripping and releasing actions. A Gazebo contact sensor is mounted on the gripper finger link to detect collisions. Since contact data is only published internally within Gazebo, we implemented a custom plugin that forwards this data to a ROS2 topic \texttt{/contact}. A ROS2 node, \texttt{contact\_listener}, subscribes to this topic and calls \texttt{/ATTACHLINK} when contact with an object is detected.
-
-For releasing, we control the gripper via the ROS2 action\\\texttt{/gripper\_position\_controller/gripper\_cmd}\\. A wrapper node, \texttt{gripper}, exposing \texttt{gripper\_wrapper} action, forwards these commands while also publishing their status to \texttt{/gripper/monitor}. The \texttt{contact\_listener} subscribes to this topic and, when detecting that the gripper is opening, calls \texttt{/DETACHLINK} if any attachments exist. This combination enables dynamic, automated grasping and releasing behavior. A diagram of all ROS2 elements is shown in Figure~\ref{fig: ros2-sim-graph}.
-
-We also integrated our vision pipeline using the cv\_bridge~\cite{cv_bridge} package to convert Gazebo image messages into OpenCV-compatible formats. The simulation world includes models of engineering tools and parts for vision testing. However, many models have simplified collision geometries, which makes gripping small or slender parts difficult. Our advisor has advised us to use the simulation for the path planning and trajectory generation, while the grasping will be tested on the real robot.
-
-In summary, the Gazebo Classic environment now provides a complete simulation of perception, planning, and dynamic grasping, forming a robust foundation for testing our integrated robotic system.
-
-\subsubsection{Hardware}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\linewidth]{images/sim_vs_real.png}
-\caption{Comparison between Simulation (Gazebo) and Real Hardware Setup (UR3e with Robotiq HandE gripper at Chulapat 14 Robotics Lab)}
-\label{fig: sim-vs-real}
-\end{figure}
-
-For connecting with the real hardware, we first set up a dual-boot environment on our computer to run Ubuntu 22.04 natively, instead of using the previous Windows Subsystem for Linux (WSL) configuration. This change significantly reduces network complexity and communication latency between the computer and the UR arm, ensuring smoother and more reliable control.
-
-We use the official Universal Robots ROS2 Driver~\cite{ur_ros2_driver}, which directly interfaces with the UR arm and replaces Gazebo in our simulation setup. The driver provides a standardized ROS2 interface to the physical robot and comes with the \texttt{ur\_moveit\_config} package, enabling us to use MoveIt2 for path planning, trajectory generation, and motion execution on the real UR arm.
-
-Our setup uses the UR3e robot equipped with a Robotiq HandE gripper located at the Chulapat 14 Robotics Lab. The UR3e already includes the necessary software to support ROS2 communication through the External Control URCap. We connect our computer to the UR control box via a dedicated Ethernet cable and configure the computer’s network interface to the IP address \texttt{10.10.0.5}, as expected by the robot. Once the connection is established, we launch the External Control program on the robot’s teach pendant and verify successful communication by commanding robot motions through the ROS2 driver and MoveIt2 interface.
-
-To ensure seamless interoperability between simulation and hardware, we modified our existing node to support both environments. The changes include dynamically adjusting the MoveIt2 move group name and toggling the \texttt{use\_sim\_time} parameter depending on whether the system is operating in Gazebo or on the real robot. We verified that the same service and action calls produced identical behavior in both the simulation and the real hardware environment, confirming consistent motion planning and execution across both setups.
+Finally, both high-level planning approaches were evaluated using user commands of varying complexity and step counts. Metrics such as success rate, execution time, and computational cost (in terms of API requests and token usage) were recorded. The two methods demonstrated comparable performance with a high overall success rate. However, the PDDL-based approach showed slightly lower reliability, likely due to inconsistencies in LLM-generated PDDL syntax. Future work will focus on improving the determinism and correctness of PDDL generation to further increase robustness.
 
 \newpage
 \section{Project Planning}
@@ -519,11 +480,10 @@ The development of the image processing module is proceeding on schedule and has
 
 The development of the Automatic Speech Recognition (ASR) module is proceeding on schedule and has entered the system integration phase. Core functionalities, including live audio capture, real-time transcription, silence detection, and ROS2 publishing, have been successfully implemented and validated through controlled tests. The development has now entered the integration phase, focusing on seamless communication with the \textbf{real-world UR-ARM}. Ongoing work involves integrating the ASR outputs with the robot's control modules to enable end-to-end speech-driven manipulation.
 
-\subsubsection{Planning Algorithm}
-The current progress is on schedule, with low-level motion planning and execution successfully implemented and verified through simulation and programmatic control. The system can now autonomously plan and execute trajectories, though ongoing refinements aim to improve reliability and efficiency. Development is advancing toward high-level planning and integration with the perception module within a hierarchical, modular architecture that enables coordinated, extensible, and intelligent robot behavior across all system layers.
+\subsubsection{Planning}
+The current progress is on schedule, with significant advancements made across all levels of the hierarchical planning system. Low-level motion execution has been enhanced for greater stability through tighter joint constraints and enforced Cartesian motion. Both medium- and high-level planners have been implemented, enabling the system to generate, evaluate, and execute multi-step plans using either direct LLM-based reasoning or symbolic PDDL-based planning.
 
-\subsubsection{Interface with Robot Arm}
-The simulation environment has been fully developed and is now ready for integration with perception and planning modules. Dynamic grasping enables end-to-end testing of the robotic system. Initial challenges with gripper motion led to a transition to a more compatible setup, where object interaction and motion execution now function reliably. The current progress is on schedule, with the simulation serving as a robust platform for validating motion planning and perception integration before transferring grasping tests to the real hardware.
+The next phase of development focuses on integrating the planner nodes with the vision services to enable perception-driven planning and decision-making. Concurrently, efforts are underway to refine the planning process itself—improving the robustness of PDDL generation, enhancing inter-node coordination, and ensuring smooth interaction between the language, perception, and motion layers to achieve fully autonomous task execution.
 
 \newpage
 \section{Theory and Technical Backup}
