@@ -517,7 +517,7 @@ The development of the image processing module is proceeding on schedule and has
 
 \subsubsection{Speech Processing}
 
-The development of the Automatic Speech Recognition (ASR) module is proceeding on schedule and has entered the system integration phase. Core functionalities, including live audio capture, real-time transcription, silence detection, and ROS2 publishing, have been successfully implemented and validated through controlled tests. The development has now entered the integration phase, focusing on seamless communication with the \textbf{real-world UR-ARM}. Ongoing work involves integrating the ASR outputs with the robot's control modules to enable end-to-end speech-driven manipulation.
+The development of the Automatic Speech Recognition (ASR) module has been successfully completed. Core functionalities, including live audio capture, real-time transcription, and ROS2 publishing, have been fully implemented and ready for validation through both controlled and real-world testing. The system introduces new capabilities such as an \textbf{emergency stop command} for safety assurance and a \textbf{deactivation word} mechanism that allows users to explicitly signal when to send the recognized sentence to the planning node of the UR-ARM, replacing the previous time-based approach. The ASR system has been successfully integrated with the \textbf{real-world UR-ARM}, enabling seamless and responsive speech-driven robot manipulation. This integration marks the completion of the ASR development phase and establishes a reliable communication interface for future extensions involving multimodal interaction and autonomous task execution.
 
 \subsubsection{Planning Algorithm}
 The current progress is on schedule, with low-level motion planning and execution successfully implemented and verified through simulation and programmatic control. The system can now autonomously plan and execute trajectories, though ongoing refinements aim to improve reliability and efficiency. Development is advancing toward high-level planning and integration with the perception module within a hierarchical, modular architecture that enables coordinated, extensible, and intelligent robot behavior across all system layers.
@@ -819,7 +819,9 @@ The roles and duties of this project revolve around the four main features. Each
 \subsection{Vision}
 
 \subsection{Speech}
+Despite the successful integration of the ASR module, several limitations remain. Currently, the system supports only one deactivation word ``EXECUTE'' which must appear at the end of a spoken command for it to be sent to the planning node. Commands without this keyword are ignored, which can reduce flexibility in natural speech interactions. Similarly, the emergency stop feature currently recognizes only the word ``STOP'' to immediately halt robot operations, and can only be deactivated by saying ``OKAY.'' While these constraints ensure reliability and safety, they also limit the diversity of voice inputs the system can handle.
 
+For future development, the ASR system will be enhanced with a feedback mechanism that enables the robot to verbally confirm received commands and notify the user when tasks are completed. This interactive feedback loop aims to improve user awareness, communication transparency, and overall usability in real-world human–robot collaboration.
 \subsection{Planning}
 
 \newpage
