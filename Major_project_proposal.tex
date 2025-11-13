@@ -905,6 +905,23 @@ Overall, the evaluation demonstrates that both approaches achieve high task comp
 \subsection{Speech}
 
 \subsection{Planning}
+Despite the successful implementation and evaluation of the hierarchical planning system, several limitations remain that present opportunities for improvement in future development.
+
+\textbf{1. Limitations of the PDDL-Based Approach.}
+The most significant challenge lies in generating syntactically correct and logically consistent PDDL (Planning Domain Definition Language) files. At present, both the \texttt{domain.pddl} and \texttt{problem.pddl} files are generated entirely by a large language model. While this enables flexibility in interpreting natural language commands, it also introduces errors such as inconsistent predicates, missing type declarations, and ill-formed syntax. These issues reduce the reliability of symbolic planning, as even minor syntax errors can cause plan generation to fail.
+
+To address this, the future plan involves reducing the portion of the PDDL specification that depends on the LLM. The set of valid actions and predicates will be manually defined and validated, ensuring correctness and interpretability. Dynamic elements, such as the current state of the robot and environment, will instead be generated deterministically from live ROS2 topics and service responses. This hybrid approach aims to retain the flexibility of LLM-based interpretation while ensuring structural and syntactic integrity in the resulting PDDL files.
+
+\textbf{2. Limited Integration with Perception.}
+The current system architecture includes a dedicated \texttt{vision} node capable of providing object detection, classification, and pose estimation services. However, full integration between this perception module and the planning system has not yet been achieved. As a result, the system has primarily been evaluated on motion- and manipulation-centric tasks that do not depend on visual context.
+
+The next phase of development will focus on completing this integration, allowing the planners to reason over perceptual information and adapt plans dynamically based on the visual state of the environment. This will enable testing and evaluation on more complex, perception-dependent instructions—such as identifying, approaching, and manipulating specific objects—which more closely resemble real-world autonomous task execution scenarios.
+
+\textbf{3. Testing with Higher-Level and Abstract Commands.}
+Although preliminary experiments with abstract language commands have been conducted, broader testing is still required to evaluate robustness and adaptability. Future work will involve systematically benchmarking both the LLM-Direct and PDDL-Based approaches on abstract, multi-step, and perception-based instructions to identify the limits of current reasoning capabilities and improve high-level plan generalization.
+
+In summary, future work will prioritize enhancing the determinism and correctness of the symbolic planning pipeline, completing the integration of the vision system, and extending task complexity in experimental evaluations. These improvements will move the system toward a more autonomous and perceptually aware planning framework capable of handling complex, open-ended tasks in dynamic environments.
+
 
 \newpage
 \bibliographystyle{IEEEtran}
