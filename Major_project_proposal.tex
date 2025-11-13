@@ -666,6 +666,31 @@ A classic illustration is the Briefcase World. Here, moving the briefcase also m
 
 PDDL has evolved from its early versions, like PDDL 1.2, which used predicate logic with true/false properties and actions, to more expressive forms. PDDL 2.1 introduced durative actions and numeric fluents for modeling time and resources, while PDDL 2.2 added derived predicates and timed literals. PDDL 3.0 incorporated soft constraints and preferences with costs, and PDDL+ enabled modeling of processes and uncontrollable events. Specialized variants such as PPDDL, NDDL, and MADDL were later developed for domain-specific planning needs~\cite{pddl}.
 
+\subsection{Fast Downward}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{images/fast_downward_execution.png}
+\caption{The three phases of Fast Downward’s execution (from~\cite{the-fast-downward-planning-system})}
+\label{fig:fd_execution}
+\end{figure}
+
+The Fast Downward planning system is a domain-independent classical planner built for deterministic planning tasks encoded in PDDL~\cite{the-fast-downward-planning-system}. It employs a forward search strategy, but crucially it does not operate directly on the propositional PDDL as given; instead it transforms the input into a multi-valued planning task (MPT) representation, and then compiles further structural knowledge (causal graphs, domain‐transition graphs, etc.) to support heuristic search~\cite{the-fast-downward-planning-system}.
+
+\bigskip
+
+The Fast Downward planning system operates in three main phases, as illustrated in Figure~\ref{fig:fd_execution}:
+
+\begin{itemize}
+\item \textbf{Translation.} The input PDDL task (with propositional facts, operators, axioms) is first normalized, grounded, invariants are synthesized, and an equivalent multi‐valued planning task is generated. This step is designed to expose structure (e.g., mutual exclusion of propositions) that is otherwise implicit in the propositional encoding.
+\item \textbf{Knowledge Compilation.} From the MPT representation the planner builds data structures such as domain‐transition graphs (for each variable, how its values can change under operators), the causal graph (showing dependencies between variables), successor‐generators (efficient enumeration of applicable operators), and axiom evaluators (to compute derived variable values).
+\item \textbf{Search.} Given the compiled knowledge structures, the planner uses heuristic best‐first search variants. Its signature heuristic is the causal-graph heuristic, which uses the MPT and the causal graph to estimate goal distances by solving subproblems induced by individual variables (in a hierarchical manner). The planner also supports multi‐heuristic best‐first search (combining the causal‐graph heuristic with the FF heuristic) and a non-heuristic method called focused iterative‐broadening search. Preferred operators (analogous to helpful actions) and deferred heuristic evaluation further enhance search efficiency.
+\end{itemize}
+
+\bigskip
+
+The planner is open‐source, publicly available via its website~\cite{fast-downward-website}. The typical workflow includes modeling the domain in PDDL, running Fast Downward to translate and compile, then searching for a plan. Many derivative planners and portfolios build on its infrastructure. For academic and practical evaluation tasks, the strong support for the MPT translation and causal heuristic make it particularly useful when one can afford the preprocessing overhead.
+
 \subsection{ROS2}
 
 \begin{figure}[htbp]
