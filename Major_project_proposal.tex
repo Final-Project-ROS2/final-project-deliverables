@@ -553,6 +553,44 @@ Among the algorithms capable of handling a range of Natural Language Processing 
 Language Model (LLM) has not only frequently appeared in numerous past studies but has also
 showcased immense potential for generating plans, transforming an initial world state into a desired state~\cite{plangenllm}.
 
+\subsection{LangChain}
+
+The open-source framework LangChain is designed to simplify the construction of applications powered by large language models (LLMs). In essence, LangChain supplies modular components, standardised abstractions, and orchestration utilities so that developers can build end-to-end LLM-based pipelines, agents, chatbots, retrieval-augmented generation (RAG) systems and more~\cite{langchain-docs}.
+
+\subsubsection*{Overall architecture}
+At a high level, LangChain can be thought of as layering on top of LLM providers (OpenAI, Anthropic, Google, etc.), providing a standard model-interface, a message history abstraction, tool-invocation support, memory/RAG support, and agent orchestration. Its goals include:
+\begin{itemize}
+\item A “standard model interface” so that different model providers can be swapped without deeply rewriting code. 
+
+\item Pre-built abstractions such as “chains”, “agents” and “tools” so the developer doesn’t start from scratch. 
+
+\item Capacity for persistence, human-in-the-loop control, durable execution and streaming, in part via its underlying runtime platform (LangGraph) though for many basic usages developers need not explicitly interface with it. 
+\end{itemize}
+
+\subsubsection*{Core concepts}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/langchain-agent.png}
+    \caption{Langchain Agent (from~\cite{langchain-docs})}
+    \label{fig:langchain-agent}
+\end{figure}
+
+\paragraph{Models}
+Models correspond to LLMs (or chat models) that produce text (or chat) responses. LangChain exposes a standard model interface so that developers can change the underlying provider (e.g., switching from OpenAI to Anthropic) without rewriting large parts of code. 
+
+\paragraph{Messages}
+Messages in LangChain represent the conversational context and follow roles like “system”, “user”, “assistant”. The message history can be passed to a model invocation so that it is aware of prior exchanges. This abstraction enables chat-style interactions and helps maintain context.
+
+\paragraph{Tools}
+Tools are external functions or actions that an agent can invoke. They might include retrieval of information, database queries, web APIs, or custom business logic. By combining the model’s generative power and tool invocation, agents built with LangChain can go beyond simple completion tasks into action-oriented workflows.
+
+\paragraph{Short-Term Memory (and longer-term memory) }
+Memory abstractions allow an agent to keep track of prior information and recall it during the interaction. Short-term memory might simply buffer recent messages; longer-term memory or retrieval-augmented memory might use vector stores or knowledge bases to fetch relevant prior context. This capability is critical for multi-turn dialogues or when the system must reference earlier interactions.
+
+\paragraph{Agents}
+Agents are orchestrators combining models, tools, messages, and memory into behaviour-enabled entities. A LangChain agent uses the model as the reasoning engine, deciding whether to call a tool (and which one), how to interpret responses, and iteratively work towards solution, as shown in Figure~\ref{fig:langchain-agent}. 
+
 \subsection{Vision Language Model (VLM)}
 \begin{figure}[htbp]
     \centering
