@@ -913,6 +913,25 @@ The simulation world includes several engineered parts used for testing percepti
 
 Overall, the Gazebo Classic simulation delivers a robust and realistic platform for evaluating the majority of our robotic pipeline. The ROS2 graph in Figure~\ref{fig:simulation-ros2-graph} highlights the modular structure that supports coordinated operation of all simulated components.
 
+\subsection{Hardware}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/sim_vs_real.png}
+\caption{Comparison between Simulation (Gazebo) and Real Hardware Setup (UR3e with Robotiq HandE gripper at Chulapat 14 Robotics Lab)}
+\label{fig:hardware-result-sim-vs-real}
+\end{figure}
+
+The final hardware setup provides a fully functional physical execution environment that mirrors the structure and control interfaces used in simulation. The system is built around the \textbf{UR3e robot arm} equipped with a \textbf{Robotiq HandE} gripper, deployed at the Chulapat 14 Robotics Lab. The robot is integrated with the project’s software stack through the official \texttt{ur\_robot\_driver} ROS2 interface~\cite{ur_ros2_driver}, enabling direct execution of MoveIt2-generated trajectories on the real robot.
+
+At the communication level, the workstation is configured to run \textbf{Ubuntu 22.04 natively} to ensure stable, low-latency connectivity with the UR control box. A dedicated Ethernet connection is used, with the network interface assigned to the address \texttt{10.10.0.5} as required by the UR External Control URCap. Once connected, the robot is set to External Control mode using the teach pendant, allowing ROS2 to stream motion commands directly to the arm.
+
+The hardware execution pipeline maintains the same \textbf{action and service interfaces} used in simulation, enabling a consistent programming model across both environments. Through the \texttt{ur\_moveit\_config} package, MoveIt2 handles kinematic planning, trajectory generation, and trajectory execution on the physical robot without any modification to planning or control nodes. This uniformity allows the system to seamlessly transition between simulated and real execution, while ensuring reproducibility of motion behavior.
+
+To support this dual-environment operation, the main control node automatically configures key parameters, such as the MoveIt2 move group name and the \texttt{use\_sim\_time} setting, based on whether the robot is operating in Gazebo or on real hardware. This allows the same high-level plan to be executed identically in both environments, and initial verification has confirmed that planned trajectories generated in simulation transfer accurately to the real arm.
+
+Overall, the hardware system establishes a robust bridge between the simulated development workflow and the real robotic platform. It provides reliable, responsive control of the UR3e, preserves interface compatibility with the simulation pipeline, and enables the project to validate real-world robot behavior under the same architecture used for virtual testing.
+
 
 \newpage
 \section{Limitations and Future Plans}
@@ -949,6 +968,24 @@ The primary limitation lies in Gazebo’s difficulty in accurately modeling dyna
 A contributing factor is the simplified collision geometries of many simulation objects. Thin or irregularly shaped tools cannot be represented with sufficiently detailed collision meshes without causing instability or excessive computation. This makes accurate grasp testing, particularly for small engineering parts, inherently unreliable in the simulation environment.
 
 Looking forward, simulation will continue to play a key role in verifying path planning, motion execution, perception processing, and non-contact task behaviors. However, due to the inherent limitations in accurately simulating gripping, the future plan is to perform all grasping-related experiments using the physical UR5 system. 
+
+\subsection{Hardware}
+
+Despite the successful establishment of a stable and reproducible hardware execution environment, several limitations remain that currently constrain the full capabilities of the system. Addressing these limitations is essential for enabling perception-driven tasks and ensuring reliable operation of the hardware platform in real-world conditions.
+
+\textbf{1. Incomplete Vision Hardware Integration.}  
+The current hardware setup lacks a depth camera, which prevents the system from fully integrating the perception pipeline that is already operational in simulation. 
+
+The future plan is to complete the procurement of a depth camera before the beginning of the second semester. Once acquired, the camera will be mounted, calibrated, and integrated with the existing ROS2 perception stack to enable consistent visual feedback in both simulated and real environments.
+
+\textbf{2. Network Constraints and Missing WiFi Support.}  
+The system currently relies on internet connectivity to perform API calls used by several components. However, the workstation used for the hardware setup is missing a functioning WiFi driver, preventing wireless access to the internet.
+
+In simulation, this issue was circumvented by using a LAN connection for internet access. In the hardware configuration, however, the LAN port must be reserved for Ethernet communication with the UR3e control box, making simultaneous robot control and internet access infeasible.
+
+To resolve this, the future plan is to install or troubleshoot the appropriate WiFi driver, restoring wireless connectivity. This will allow the system to maintain continuous access to required online services while ensuring a dedicated wired link for real-time robot communication.
+
+In summary, future work on the hardware system will focus on integrating a physical depth camera to enable real-world perception and resolving WiFi connectivity issues to support required API-dependent components. These improvements will ensure a more capable, flexible, and perception-enabled hardware platform for the next phase of the project.
 
 
 \newpage
