@@ -896,6 +896,23 @@ Since both methods rely on large language models, computational overhead was als
 
 Overall, the evaluation demonstrates that both approaches achieve high task completion rates and efficient execution times, with the LLM-Direct planner excelling in generalization and interpretability, while the PDDL-based method offers more structured symbolic reasoning and scalability for well-defined tasks.
 
+\subsection{Simulation}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/gazebo_setup.png}
+\caption{UR5 with Robotiq 2F-85 gripper and depth camera in Gazebo simulation environment}
+\label{fig:simulation-gazebo-setup}
+\end{figure}
+
+The simulation environment is implemented in Gazebo Classic and provides a complete, fully integrated setup for testing perception, motion planning, and gripper control. The system models the UR5 robotic arm equipped with a Robotiq 2F-85 gripper and a downward-facing depth camera, together with a table environment and a collection of engineering objects. All components are interfaced through ROS2, enabling real-time communication and execution of motion and perception tasks within a unified simulation framework.
+
+At the \textbf{robot and sensor level}, the UR5, gripper, and camera are simulated using standard Gazebo ROS2 interfaces. The robot exposes joint states, controllers, and transforms exactly as in a physical setup, while the RGB-D camera publishes depth and color images that integrate directly with the perception pipeline. Using \texttt{cv\_bridge}~\cite{cv_bridge}, raw Gazebo image messages are converted into OpenCV-compatible formats, allowing the vision node to operate identically to its real-world counterpart.
+
+The simulation world includes several engineered parts used for testing perception-driven tasks. While some models contain simplified collision meshes, making precise grasping less reliable, the environment is sufficient for validating perception, planning, and trajectory execution. In line with guidance from our advisor, detailed grasp evaluation will be carried out on the real hardware, while Gazebo is used primarily for motion, planning, and system integration testing.
+
+Overall, the Gazebo Classic simulation delivers a robust and realistic platform for evaluating the majority of our robotic pipeline. The ROS2 graph in Figure~\ref{fig:simulation-ros2-graph} highlights the modular structure that supports coordinated operation of all simulated components.
+
 
 \newpage
 \section{Limitations and Future Plans}
@@ -921,6 +938,17 @@ The next phase of development will focus on completing this integration, allowin
 Although preliminary experiments with abstract language commands have been conducted, broader testing is still required to evaluate robustness and adaptability. Future work will involve systematically benchmarking both the LLM-Direct and PDDL-Based approaches on abstract, multi-step, and perception-based instructions to identify the limits of current reasoning capabilities and improve high-level plan generalization.
 
 In summary, future work will prioritize enhancing the determinism and correctness of the symbolic planning pipeline, completing the integration of the vision system, and extending task complexity in experimental evaluations. These improvements will move the system toward a more autonomous and perceptually aware planning framework capable of handling complex, open-ended tasks in dynamic environments.
+
+\subsection{Simulation}
+
+Despite the successful establishment of a fully functional Gazebo Classic environment integrating perception, planning, and dynamic object attachment, several limitations remain that affect the fidelity and scope of simulation-based testing.
+
+\textbf{1. Challenges in Simulating Dynamic Gripping.}
+The primary limitation lies in Gazebo’s difficulty in accurately modeling dynamic gripping interactions. Although the IFRA Link Attacher Plugin enables attachment and detachment through service calls, it does not replicate real physical grasping forces or friction-based constraints. Achieving realistic gripping requires highly precise tuning of contact parameters, collision surfaces, and joint properties across multiple Gazebo components. In practice, these configurations are complex, brittle, and sensitive to small variations in model setup. As a result, while the grasping pipeline functions at a logical level, it does not reliably emulate real-world gripping behavior.
+
+A contributing factor is the simplified collision geometries of many simulation objects. Thin or irregularly shaped tools cannot be represented with sufficiently detailed collision meshes without causing instability or excessive computation. This makes accurate grasp testing, particularly for small engineering parts, inherently unreliable in the simulation environment.
+
+Looking forward, simulation will continue to play a key role in verifying path planning, motion execution, perception processing, and non-contact task behaviors. However, due to the inherent limitations in accurately simulating gripping, the future plan is to perform all grasping-related experiments using the physical UR5 system. 
 
 
 \newpage
