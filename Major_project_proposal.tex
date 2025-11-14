@@ -905,6 +905,13 @@ Overall, the evaluation demonstrates that both approaches achieve high task comp
 \label{fig:simulation-gazebo-setup}
 \end{figure}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/ros2_sim_graph_full.png}
+\caption{ROS2 graph for the Gazebo simulation environment}
+\label{fig:simulation-ros2-graph}
+\end{figure}
+
 The simulation environment is implemented in Gazebo Classic and provides a complete, fully integrated setup for testing perception, motion planning, and gripper control. The system models the UR5 robotic arm equipped with a Robotiq 2F-85 gripper and a downward-facing depth camera, together with a table environment and a collection of engineering objects. All components are interfaced through ROS2, enabling real-time communication and execution of motion and perception tasks within a unified simulation framework.
 
 At the \textbf{robot and sensor level}, the UR5, gripper, and camera are simulated using standard Gazebo ROS2 interfaces. The robot exposes joint states, controllers, and transforms exactly as in a physical setup, while the RGB-D camera publishes depth and color images that integrate directly with the perception pipeline. Using \texttt{cv\_bridge}~\cite{cv_bridge}, raw Gazebo image messages are converted into OpenCV-compatible formats, allowing the vision node to operate identically to its real-world counterpart.
@@ -956,7 +963,12 @@ The next phase of development will focus on completing this integration, allowin
 \textbf{3. Testing with Higher-Level and Abstract Commands.}
 Although preliminary experiments with abstract language commands have been conducted, broader testing is still required to evaluate robustness and adaptability. Future work will involve systematically benchmarking both the LLM-Direct and PDDL-Based approaches on abstract, multi-step, and perception-based instructions to identify the limits of current reasoning capabilities and improve high-level plan generalization.
 
-In summary, future work will prioritize enhancing the determinism and correctness of the symbolic planning pipeline, completing the integration of the vision system, and extending task complexity in experimental evaluations. These improvements will move the system toward a more autonomous and perceptually aware planning framework capable of handling complex, open-ended tasks in dynamic environments.
+\textbf{4. Fail-Safe Mechanism.}
+Currently, the system implements an emergency stop mechanism via a predefined keyword. When the emergency stop word is detected, the robot halts all actions and remains locked in its current position until an “okay” word is received. While this prevents immediate harm, it is not fail-safe: the robot may be stopped in potentially unsafe locations, such as near obstacles or in awkward arm configurations.
+
+The planned improvement is to implement a proper fail-safe routine. In the event of an emergency stop, the robot will autonomously move to a predefined safe position (e.g., the home position) before halting, ensuring that the system is in a known, secure state. This enhancement will increase overall safety and reliability, particularly in dynamic or unstructured environments.
+
+In summary, future work will prioritize enhancing the determinism and correctness of the symbolic planning pipeline, completing the integration of the vision system, extending task complexity in experimental evaluations, and implementing robust fail-safe procedures to improve operational safety.
 
 \subsection{Simulation}
 
