@@ -8,6 +8,7 @@
 \usepackage{hyperref}
 \usepackage{siunitx}
 \usepackage{microtype}
+\usepackage{booktabs}
 \graphicspath{{images/}}
 
 \begin{document}
@@ -150,7 +151,7 @@ Recent advances in robot planning and manipulation have increasingly focused on 
 
 Two principal architectural paradigms have emerged: monolithic models and hierarchical models~\cite{vla-in-robot}. Monolithic models aim to jointly optimize perception, reasoning, and control in a single pipeline. Within this category, single-system designs treat robot actions as autoregressively generated tokens, enabling strong semantic generalization from large-scale pretraining but suffering from slow inference and limited interpretability. Dual-system designs mitigate these issues by pairing a slower, deliberative planner with a fast execution module, though they introduce challenges in synchronization and integration.
 
-Hierarchical models, by contrast, explicitly decouple high-level planning from low-level execution. They produce interpretable intermediate representations—such as subtasks, spatial keypoints, or structured programs—that bridge natural language instructions and executable control policies. This modularity improves transparency and supports long-horizon reasoning, enabling decomposition of complex tasks into manageable steps. Approaches like program-based planning connect natural language to symbolic structures or robot APIs, balancing interpretability with execution fidelity.
+Hierarchical models, by contrast, explicitly decouple high-level planning from low-level execution. They produce interpretable intermediate representations, such as subtasks, spatial keypoints, or structured programs, that bridge natural language instructions and executable control policies. This modularity improves transparency and supports long-horizon reasoning, enabling decomposition of complex tasks into manageable steps. Approaches like program-based planning connect natural language to symbolic structures or robot APIs, balancing interpretability with execution fidelity.
 
 Across both paradigms, several strategies address the challenges of efficiency, generalization, and robustness~\cite{vla-in-robot}. To reduce inference latency, work has explored parallel decoding, compressed action tokenization, and lightweight architectures. To improve adaptability, VLA models increasingly incorporate predictive world models, richer perception modalities (e.g., depth, tactile, and temporal cues), reinforcement learning for dense feedback, and human video data for cross-domain knowledge transfer. Safety mechanisms such as adaptive planning and dynamic risk assessment further strengthen reliability in unstructured environments.
 
@@ -181,12 +182,12 @@ Recent advancements have led to diverse implementations and approaches, broadly 
 
 \begin{enumerate}[label=\Roman*.]
     \item \textbf{Traditional / Early Language Grounding} \\
-Traditional methods typically map natural language phrases to pre-defined symbolic representations of robot states and actions, assuming a symbolic description of the environment and actions. They often rely on symbols hand-coded by domain experts~\cite{optimizatoin-and-motion-planning} or logical parses that translate language into motion constraints or control actions, and generally lack the flexibility to autonomously learn task semantics~\cite{learning-neuro-symbolic}. While these methods provide clear symbolic interpretability, they are inherently limited in their generalizability—new goals (e.g., switching from red pens to blue pens) require new training or explicit user input~\cite{ns-vqa}.
+Traditional methods typically map natural language phrases to pre-defined symbolic representations of robot states and actions, assuming a symbolic description of the environment and actions. They often rely on symbols hand-coded by domain experts~\cite{optimizatoin-and-motion-planning} or logical parses that translate language into motion constraints or control actions, and generally lack the flexibility to autonomously learn task semantics~\cite{learning-neuro-symbolic}. While these methods provide clear symbolic interpretability, they are inherently limited in their generalizability, new goals (e.g., switching from red pens to blue pens) require new training or explicit user input~\cite{ns-vqa}.
 
 Interpretability is high since the reasoning is explicit and symbolic, but they often fail to integrate discrete task planning with continuous motion feasibility~\cite{tamp}, restricting use in dynamic, real-world settings. Data efficiency is poor, as pre-annotated datasets are needed to map phrases to symbols. Additionally, scalability is limited since symbolic operators are predefined, and the frameworks cannot easily adapt to unseen tasks.
 
     \item \textbf{Language-Conditioned End-to-End Systems (e.g., CLIPORT)} \\
-These systems combine large-scale pre-trained vision-language models (like CLIP, for broad semantic grounding—the “what”) with architectures specialized for spatial precision (like Transporter—the “where”). Transporter Networks are highly sample-efficient, end-to-end models for robotic manipulation that avoid object-centric assumptions, exploiting spatial symmetries and generalizing well to unseen objects and configurations~\cite{transporter}. CLIPORT builds on this by integrating language-conditioned policies and semantic understanding via a two-stream design, enabling grounding of categories, shapes, colors, and text attributes without requiring hand-designed perception pipelines. They show strong data efficiency, can learn multi-task policies, and generalize across seen and unseen semantic concepts, transferring learned attributes to new tasks~\cite{cliport}.
+These systems combine large-scale pre-trained vision-language models (like CLIP, for broad semantic grounding, the “what”) with architectures specialized for spatial precision (like Transporter, the “where”). Transporter Networks are highly sample-efficient, end-to-end models for robotic manipulation that avoid object-centric assumptions, exploiting spatial symmetries and generalizing well to unseen objects and configurations~\cite{transporter}. CLIPORT builds on this by integrating language-conditioned policies and semantic understanding via a two-stream design, enabling grounding of categories, shapes, colors, and text attributes without requiring hand-designed perception pipelines. They show strong data efficiency, can learn multi-task policies, and generalize across seen and unseen semantic concepts, transferring learned attributes to new tasks~\cite{cliport}.
 
 However, challenges remain. CLIPORT struggles with fine-grained reasoning about relationships (e.g., “middle square hole” with unseen shapes), counting, or verb-noun generalization beyond training data. Its execution is limited to open-loop pick-and-place primitives, making it brittle in dynamic or dexterous tasks. Interpretability is partial: while the semantic prior is clear, the underlying reasoning process remains mostly opaque. Calibration errors or biases in training data can degrade performance, and extending to high-DOF manipulation is non-trivial~\cite{cliport}.
 
@@ -341,7 +342,7 @@ To extend the pipeline beyond individual object recognition, we implemented a sc
 \label{fig: scene_understanding}
 \end{figure}
 
-To facilitate real-time interaction with robotic hardware, the completed perception pipeline—comprising SAM, CLIP, GraspNet, and Scene Understanding modules—was connected to a \textbf{ROS (Robot Operating System)} node. The pipeline publishes detection and grasping results as ROS topics, enabling seamless communication with motion planning and control modules. This setup establishes a modular framework that can be easily extended or replaced with higher-level planners.
+To facilitate real-time interaction with robotic hardware, the completed perception pipeline, comprising SAM, CLIP, GraspNet, and Scene Understanding modules, was connected to a \textbf{ROS (Robot Operating System)} node. The pipeline publishes detection and grasping results as ROS topics, enabling seamless communication with motion planning and control modules. This setup establishes a modular framework that can be easily extended or replaced with higher-level planners.
 
 \begin{figure}[htbp]
 \centering
@@ -357,75 +358,36 @@ In the upcoming phase, we will migrate the system to \textbf{ROS2} to enhance co
 \subsubsection{Planning}
 
 \begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{images/ros2_graph.png}
-    \caption{High-level ROS2 Graph for Planning System}
-    \label{fig: ros2-graph}
-\end{figure}
-
-Our current focus in planning is on low-level path planning and trajectory generation using MoveIt2~\cite{moveit2}, chosen for its strong integration with ROS2. We generated a MoveIt configuration package for the UR5e arm with the Robotiq 2F-85 gripper from our URDF using the MoveIt Setup Assistant.
-
-Initial verification was done through the MoveIt2 GUI in RViz, confirming that inverse kinematics and trajectory planning worked correctly. We then extended control programmatically using the MoveIt2 C++ API by creating a ROS2 node, \texttt{moveit\_pose}, which hosts an action server \texttt{/plan\_execute\_pose}. This action takes a target end-effector pose and uses the \texttt{MoveGroupInterface} to plan and execute a trajectory from the current to the desired pose.
-
-The planning pipeline is functional but not yet robust—plans occasionally fail or produce inefficient motions. To improve this, we are exploring tighter joint constraints, Cartesian path planning for smoother linear motion, and direct joint-space control through custom actions and services.
-
-Beyond low-level motion planning, we have designed a hierarchical ROS2-based architecture consisting of five main nodes, as shown in Figure~\ref{fig: ros2-graph}, enabling modularity and extensibility across system layers:
-\begin{enumerate}
-    \item \textbf{vision:} Provides multiple perception-related services, including scene description, object classification, and object pose and position estimation.
-    \item \textbf{asr:} Hosts the \texttt{/get\_transcript} service, which captures speech input, performs transcription, and returns the resulting text. Future improvements may include text-to-speech for enhanced interactivity.
-    \item \textbf{high\_level\_planner:} Accesses all available services, receives high-level user instructions (via \texttt{/get\_transcript}), and decomposes them into structured subtasks.
-    \item \textbf{medium\_level\_planner:} Implements an action server to plan and execute these subtasks by converting them into “robot language” consisting of via-points and gripper actions.
-    \item \textbf{low\_level\_planner\_executor:} Handles path planning, trajectory generation, inverse kinematics, and motion execution, exposing corresponding services and action servers.
-\end{enumerate}
-
-This multi-layered design allows each component to be developed, replaced, or improved independently. The hierarchical decomposition of planning—from perception and language understanding down to motion execution—enables the robot to perform complex, long-horizon tasks while maintaining system modularity and flexibility.
-
-
-
-\subsubsection{Simulation}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{images/gazebo_setup.png}
-    \caption{UR5 with Robotiq 2F-85 gripper and depth camera in Gazebo simulation environment}
-    \label{fig: gazebo-setup}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{images/ros2_sim_graph.png}
-    \caption{ROS2 Graph for Gazebo Simulation Setup}
-    \label{fig: ros2-sim-graph}
-\end{figure}
-
-Our simulation initially began in Isaac Sim, where we verified ROS2 integration, motion planning with MoveIt2, and perception-enabled obstacle avoidance using a UR5 robot, Robotiq 2F-85 gripper, and Intel RealSense D435i camera. However, Isaac Sim’s limitations in handling closed-loop mechanisms prevented proper gripper motion, making it complex and difficult to simulate pick-and-place tasks.
-
-We therefore transitioned to Gazebo Classic, chosen over Gazebo Ignition (now \textit{Gazebo}) for plugin compatibility. The environment includes the UR5, Robotiq gripper, a table, and a downward-facing camera, as shown in Figure~\ref{fig: gazebo-setup}. ROS2 communication between the robot, gripper, and sensors is verified through standard Gazebo ROS2 interfaces.
-
-To address the challenge of simulating object grasping, we use the IFRA Link Attacher Plugin~\cite{ifra_link_attacher}, which provides the \texttt{/ATTACHLINK} and \texttt{/DETACHLINK} services to dynamically create or destroy fixed joints between links—effectively simulating gripping and releasing actions. A Gazebo contact sensor is mounted on the gripper finger link to detect collisions. Since contact data is only published internally within Gazebo, we implemented a custom plugin that forwards this data to a ROS2 topic \texttt{/contact}. A ROS2 node, \texttt{contact\_listener}, subscribes to this topic and calls \texttt{/ATTACHLINK} when contact with an object is detected.
-
-For releasing, we control the gripper via the ROS2 action\\\texttt{/gripper\_position\_controller/gripper\_cmd}\\. A wrapper node, \texttt{gripper}, exposing \texttt{gripper\_wrapper} action, forwards these commands while also publishing their status to \texttt{/gripper/monitor}. The \texttt{contact\_listener} subscribes to this topic and, when detecting that the gripper is opening, calls \texttt{/DETACHLINK} if any attachments exist. This combination enables dynamic, automated grasping and releasing behavior. A diagram of all ROS2 elements is shown in Figure~\ref{fig: ros2-sim-graph}.
-
-We also integrated our vision pipeline using the cv\_bridge~\cite{cv_bridge} package to convert Gazebo image messages into OpenCV-compatible formats. The simulation world includes models of engineering tools and parts for vision testing. However, many models have simplified collision geometries, which makes gripping small or slender parts difficult. Our advisor has advised us to use the simulation for the path planning and trajectory generation, while the grasping will be tested on the real robot.
-
-In summary, the Gazebo Classic environment now provides a complete simulation of perception, planning, and dynamic grasping, forming a robust foundation for testing our integrated robotic system.
-
-\subsubsection{Hardware}
-
-\begin{figure}[h]
 \centering
-\includegraphics[width=\linewidth]{images/sim_vs_real.png}
-\caption{Comparison between Simulation (Gazebo) and Real Hardware Setup (UR3e with Robotiq HandE gripper at Chulapat 14 Robotics Lab)}
-\label{fig: sim-vs-real}
+\includegraphics[width=\linewidth]{images/ros2_graph_updated.png}
+\caption{Updated ROS2 Graph for the Hierarchical Planning System}
+\label{fig:planning-ros2-graph}
 \end{figure}
 
-For connecting with the real hardware, we first set up a dual-boot environment on our computer to run Ubuntu 22.04 natively, instead of using the previous Windows Subsystem for Linux (WSL) configuration. This change significantly reduces network complexity and communication latency between the computer and the UR arm, ensuring smoother and more reliable control.
+Significant progress has been made in improving both the robustness and the intelligence of the planning system. At the low level, we enhanced the \texttt{low\_level\_planner\_executor} node by tightening joint constraints and enforcing Cartesian (linear) path execution rather than free-form trajectories. This change improves motion predictability and safety. 
 
-We use the official Universal Robots ROS2 Driver~\cite{ur_ros2_driver}, which directly interfaces with the UR arm and replaces Gazebo in our simulation setup. The driver provides a standardized ROS2 interface to the physical robot and comes with the \texttt{ur\_moveit\_config} package, enabling us to use MoveIt2 for path planning, trajectory generation, and motion execution on the real UR arm.
+The \texttt{low\_level\_planner\_executor} node now hosts multiple dedicated action servers, expanding its capability for modular motion control:
+\begin{itemize}
+\item \texttt{/plan\_cartesian\_relative}: Performs linear movement relative to the current end-effector position.
+\item \texttt{/get\_current\_pose} and \texttt{/get\_joint\_angles}: Retrieve the current Cartesian pose and joint configurations, respectively.
+\item \texttt{/set\_joint\_angles}: Commands the robot to specific joint positions.
+\item \texttt{/plan\_complex\_cartesian\_steps}: Moves the end-effector linearly to a specified pose by decomposing the motion into smaller axis-wise steps.
+\end{itemize}
 
-Our setup uses the UR3e robot equipped with a Robotiq HandE gripper located at the Chulapat 14 Robotics Lab. The UR3e already includes the necessary software to support ROS2 communication through the External Control URCap. We connect our computer to the UR control box via a dedicated Ethernet cable and configure the computer’s network interface to the IP address \texttt{10.10.0.5}, as expected by the robot. Once the connection is established, we launch the External Control program on the robot’s teach pendant and verify successful communication by commanding robot motions through the ROS2 driver and MoveIt2 interface.
+At the next layer, the \texttt{medium\_level\_planner} node was developed to bridge high-level reasoning and low-level execution. This node integrates an AI agent built using LangChain~\cite{langchain-docs}, which dynamically selects and calls the available low-level planner actions as “tools.” It hosts the \texttt{/medium\_level} action server, responsible for receiving and executing subtasks sent from the high-level planner.
 
-To ensure seamless interoperability between simulation and hardware, we modified our existing node to support both environments. The changes include dynamically adjusting the MoveIt2 move group name and toggling the \texttt{use\_sim\_time} parameter depending on whether the system is operating in Gazebo or on the real robot. We verified that the same service and action calls produced identical behavior in both the simulation and the real hardware environment, confirming consistent motion planning and execution across both setups.
+The \texttt{high\_level\_planner} node was also implemented with two approaches:
+\begin{enumerate}
+\item \textbf{LLM-Direct Planning:} An AI agent directly generates a structured sequence of subtasks and corresponding actions to be sent to the \texttt{medium\_level\_planner} for execution.
+\item \textbf{Symbolic Planning (PDDL-Based):} The AI agent generates a PDDL problem and domain file from natural language commands. These are then solved by a symbolic planner (FastDownward~\cite{the-fast-downward-planning-system}) to produce an executable plan.
+\end{enumerate}
+In both cases, the resulting plan, a list of actions, is displayed to the user for confirmation. The user can review, modify, or reject any step using natural language before the plan is passed to the \texttt{medium\_level\_planner} for execution.
+
+Both planner nodes (\texttt{high\_level\_planner} and \texttt{medium\_level\_planner}) are designed to interface with perception modules by accessing services provided by the \texttt{vision} node as additional reasoning tools. Furthermore, safety and emergency handling have been improved by enabling the \\ \texttt{low\_level\_planner\_executor} to subscribe to the \texttt{/emergency} topic, which can immediately halt motion if the \texttt{asr} node detects the emergency keyword.
+
+The system architecture was also updated, as show in Figure~\ref{fig:planning-ros2-graph} such that the \texttt{asr} node now publishes transcribed speech to the \texttt{/transcript} topic upon detecting the activation keyword, simplifying communication flow compared to the previous service-based design.
+
+Finally, both high-level planning approaches were evaluated using user commands of varying complexity and step counts. Metrics such as success rate, execution time, and computational cost (in terms of API requests and token usage) were recorded. The two methods demonstrated comparable performance with a high overall success rate. However, the PDDL-based approach showed slightly lower reliability, likely due to inconsistencies in LLM-generated PDDL syntax. Future work will focus on improving the determinism and correctness of PDDL generation to further increase robustness.
 
 \newpage
 \section{Project Planning}
@@ -519,11 +481,10 @@ The development of the image processing module is proceeding on schedule and has
 
 The development of the Automatic Speech Recognition (ASR) module has been successfully completed. Core functionalities, including live audio capture, real-time transcription, and ROS2 publishing, have been fully implemented and ready for validation through both controlled and real-world testing. The system introduces new capabilities such as an \textbf{emergency stop command} for safety assurance and a \textbf{deactivation word} mechanism that allows users to explicitly signal when to send the recognized sentence to the planning node of the UR-ARM, replacing the previous time-based approach. The ASR system has been successfully integrated with the \textbf{real-world UR-ARM}, enabling seamless and responsive speech-driven robot manipulation. This integration marks the completion of the ASR development phase and establishes a reliable communication interface for future extensions involving multimodal interaction and autonomous task execution.
 
-\subsubsection{Planning Algorithm}
-The current progress is on schedule, with low-level motion planning and execution successfully implemented and verified through simulation and programmatic control. The system can now autonomously plan and execute trajectories, though ongoing refinements aim to improve reliability and efficiency. Development is advancing toward high-level planning and integration with the perception module within a hierarchical, modular architecture that enables coordinated, extensible, and intelligent robot behavior across all system layers.
+\subsubsection{Planning}
+The current progress is on schedule, with significant advancements made across all levels of the hierarchical planning system. Low-level motion execution has been enhanced for greater stability through tighter joint constraints and enforced Cartesian motion. Both medium- and high-level planners have been implemented, enabling the system to generate, evaluate, and execute multi-step plans using either direct LLM-based reasoning or symbolic PDDL-based planning.
 
-\subsubsection{Interface with Robot Arm}
-The simulation environment has been fully developed and is now ready for integration with perception and planning modules. Dynamic grasping enables end-to-end testing of the robotic system. Initial challenges with gripper motion led to a transition to a more compatible setup, where object interaction and motion execution now function reliably. The current progress is on schedule, with the simulation serving as a robust platform for validating motion planning and perception integration before transferring grasping tests to the real hardware.
+The next phase of development focuses on integrating the planner nodes with the vision services to enable perception-driven planning and decision-making. Concurrently, efforts are underway to refine the planning process itself, improving the robustness of PDDL generation, enhancing inter-node coordination, and ensuring smooth interaction between the language, perception, and motion layers to achieve fully autonomous task execution.
 
 \newpage
 \section{Theory and Technical Backup}
@@ -592,6 +553,44 @@ Natural Language Processing (NLP) techniques without having to fine-tune with ex
 Among the algorithms capable of handling a range of Natural Language Processing tasks, Large
 Language Model (LLM) has not only frequently appeared in numerous past studies but has also
 showcased immense potential for generating plans, transforming an initial world state into a desired state~\cite{plangenllm}.
+
+\subsection{LangChain}
+
+The open-source framework LangChain is designed to simplify the construction of applications powered by large language models (LLMs). In essence, LangChain supplies modular components, standardised abstractions, and orchestration utilities so that developers can build end-to-end LLM-based pipelines, agents, chatbots, retrieval-augmented generation (RAG) systems and more~\cite{langchain-docs}.
+
+\subsubsection*{Overall architecture}
+At a high level, LangChain can be thought of as layering on top of LLM providers (OpenAI, Anthropic, Google, etc.), providing a standard model-interface, a message history abstraction, tool-invocation support, memory/RAG support, and agent orchestration. Its goals include:
+\begin{itemize}
+\item A “standard model interface” so that different model providers can be swapped without deeply rewriting code. 
+
+\item Pre-built abstractions such as “chains”, “agents” and “tools” so the developer doesn’t start from scratch. 
+
+\item Capacity for persistence, human-in-the-loop control, durable execution and streaming, in part via its underlying runtime platform (LangGraph) though for many basic usages developers need not explicitly interface with it. 
+\end{itemize}
+
+\subsubsection*{Core concepts}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/langchain-agent.png}
+    \caption{Langchain Agent (from~\cite{langchain-docs})}
+    \label{fig:langchain-agent}
+\end{figure}
+
+\paragraph{Models}
+Models correspond to LLMs (or chat models) that produce text (or chat) responses. LangChain exposes a standard model interface so that developers can change the underlying provider (e.g., switching from OpenAI to Anthropic) without rewriting large parts of code. 
+
+\paragraph{Messages}
+Messages in LangChain represent the conversational context and follow roles like “system”, “user”, “assistant”. The message history can be passed to a model invocation so that it is aware of prior exchanges. This abstraction enables chat-style interactions and helps maintain context.
+
+\paragraph{Tools}
+Tools are external functions or actions that an agent can invoke. They might include retrieval of information, database queries, web APIs, or custom business logic. By combining the model’s generative power and tool invocation, agents built with LangChain can go beyond simple completion tasks into action-oriented workflows.
+
+\paragraph{Short-Term Memory (and longer-term memory) }
+Memory abstractions allow an agent to keep track of prior information and recall it during the interaction. Short-term memory might simply buffer recent messages; longer-term memory or retrieval-augmented memory might use vector stores or knowledge bases to fetch relevant prior context. This capability is critical for multi-turn dialogues or when the system must reference earlier interactions.
+
+\paragraph{Agents}
+Agents are orchestrators combining models, tools, messages, and memory into behaviour-enabled entities. A LangChain agent uses the model as the reasoning engine, deciding whether to call a tool (and which one), how to interpret responses, and iteratively work towards solution, as shown in Figure~\ref{fig:langchain-agent}. 
 
 \subsection{Vision Language Model (VLM)}
 \begin{figure}[htbp]
@@ -667,6 +666,31 @@ A classic illustration is the Briefcase World. Here, moving the briefcase also m
 \end{lstlisting}
 
 PDDL has evolved from its early versions, like PDDL 1.2, which used predicate logic with true/false properties and actions, to more expressive forms. PDDL 2.1 introduced durative actions and numeric fluents for modeling time and resources, while PDDL 2.2 added derived predicates and timed literals. PDDL 3.0 incorporated soft constraints and preferences with costs, and PDDL+ enabled modeling of processes and uncontrollable events. Specialized variants such as PPDDL, NDDL, and MADDL were later developed for domain-specific planning needs~\cite{pddl}.
+
+\subsection{Fast Downward}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{images/fast_downward_execution.png}
+\caption{The three phases of Fast Downward’s execution (from~\cite{the-fast-downward-planning-system})}
+\label{fig:fd_execution}
+\end{figure}
+
+The Fast Downward planning system is a domain-independent classical planner built for deterministic planning tasks encoded in PDDL~\cite{the-fast-downward-planning-system}. It employs a forward search strategy, but crucially it does not operate directly on the propositional PDDL as given; instead it transforms the input into a multi-valued planning task (MPT) representation, and then compiles further structural knowledge (causal graphs, domain‐transition graphs, etc.) to support heuristic search~\cite{the-fast-downward-planning-system}.
+
+\bigskip
+
+The Fast Downward planning system operates in three main phases, as illustrated in Figure~\ref{fig:fd_execution}:
+
+\begin{itemize}
+\item \textbf{Translation.} The input PDDL task (with propositional facts, operators, axioms) is first normalized, grounded, invariants are synthesized, and an equivalent multi‐valued planning task is generated. This step is designed to expose structure (e.g., mutual exclusion of propositions) that is otherwise implicit in the propositional encoding.
+\item \textbf{Knowledge Compilation.} From the MPT representation the planner builds data structures such as domain‐transition graphs (for each variable, how its values can change under operators), the causal graph (showing dependencies between variables), successor‐generators (efficient enumeration of applicable operators), and axiom evaluators (to compute derived variable values).
+\item \textbf{Search.} Given the compiled knowledge structures, the planner uses heuristic best‐first search variants. Its signature heuristic is the causal-graph heuristic, which uses the MPT and the causal graph to estimate goal distances by solving subproblems induced by individual variables (in a hierarchical manner). The planner also supports multi‐heuristic best‐first search (combining the causal‐graph heuristic with the FF heuristic) and a non-heuristic method called focused iterative‐broadening search. Preferred operators (analogous to helpful actions) and deferred heuristic evaluation further enhance search efficiency.
+\end{itemize}
+
+\bigskip
+
+The planner is open‐source, publicly available via its website~\cite{fast-downward-website}. The typical workflow includes modeling the domain in PDDL, running Fast Downward to translate and compile, then searching for a plan. Many derivative planners and portfolios build on its infrastructure. For academic and practical evaluation tasks, the strong support for the MPT translation and causal heuristic make it particularly useful when one can afford the preprocessing overhead.
 
 \subsection{ROS2}
 
@@ -813,6 +837,109 @@ The roles and duties of this project revolve around the four main features. Each
 
 \subsection{Planning}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/ros2_graph_updated.png}
+\caption{Final ROS2 Graph for the Hierarchical Planning System}
+\label{fig:planning-result-ros2-graph}
+\end{figure}
+
+The final planning system is implemented as a fully integrated hierarchical framework that connects high-level reasoning, task decomposition, and low-level motion control within the ROS2 environment. It provides an end-to-end pipeline that enables the robot to interpret natural language instructions, generate structured task plans, and execute precise physical motions safely and efficiently.
+
+At the \textbf{low level}, the \texttt{low\_level\_planner\_executor} node serves as the motion control core. It performs path planning and trajectory execution using Cartesian motion enforcement and joint-space constraints to ensure predictable and smooth operation. The node provides several dedicated action servers, including \texttt{/plan\_cartesian\_relative}, \texttt{/get\_current\_pose}, \texttt{/set\_joint\_angles}, and \texttt{/plan\_complex\_cartesian\_steps}, enabling fine-grained control and feedback of the robot’s kinematic state.
+
+The \textbf{medium-level planner} acts as an intermediary between symbolic reasoning and motion execution. Implemented with the LangChain framework~\cite{langchain-docs}, it treats low-level planning capabilities as callable “tools,” allowing dynamic composition of motion sequences through the \texttt{/medium\_level} action server. This design enables flexible execution of subtasks generated by the higher-level planners while maintaining direct communication with perception and speech modules.
+
+At the \textbf{high level}, two complementary planning paradigms are supported:
+\begin{enumerate}
+\item \textbf{LLM-Direct Planning:} An AI agent interprets natural language commands and directly produces a structured sequence of subtasks for execution.
+\item \textbf{Symbolic (PDDL-Based) Planning:} Commands are converted into PDDL problem and domain definitions, which are solved by the Fast Downward planner~\cite{the-fast-downward-planning-system} to yield a formal action plan.
+\end{enumerate}
+Both methods produce executable plans that are displayed to the user for review and confirmation. The LLM-Direct approach allows for greater flexibility and responsiveness, while the PDDL-based approach provides more explicit logical structure and interpretability.
+
+The planning architecture integrates closely with perception and speech. The \texttt{vision} node provides environmental and object-level context for reasoning, and the \texttt{asr} node publishes transcribed commands to a topic, facilitating event-driven interaction. Safety is handled through an emergency protocol in which the \texttt{low\_level\_planner\_executor} subscribes to an \texttt{/emergency} topic capable of interrupting motion instantly upon detection of a critical keyword.
+
+Overall, the planning subsystem embodies a coherent multi-layered design that connects high-level cognitive planning with deterministic motion execution. It enables the robot to autonomously interpret, plan, and act on user instructions, demonstrating the viability of combining language-driven AI planning with classical motion control in a modular and extensible ROS2-based framework.
+
+\subsubsection{Experimentation and Evaluation}
+
+\begin{table}[h!]
+\centering
+\caption{Comparison of LLM-Direct and PDDL-Based Planning Approaches}
+\label{tab:planning-eval}
+\begin{tabular}{lccc}
+\hline
+\textbf{Metric} & \textbf{LLM-Direct} & \textbf{PDDL-Based} \\
+\hline
+Execution Time per Step (s) & $7.20 \pm 0.25$ & $6.83 \pm 0.27$ \\
+Success Rate (\%) & $100.0$ & $91.0$ \\
+LLM Requests per Step & $2.0$ & $2.0$ \\
+Tokens per Step & $\approx 3{,}000$ & $\approx 3{,}000$ \\
+\hline
+\end{tabular}
+\begin{flushleft}
+\footnotesize{$^{*}$Statistically significant at $\alpha = 0.05$.}
+\end{flushleft}
+\end{table}
+
+The planning system was evaluated using a set of 13 task instructions of varying complexity and step counts, each executed five times for statistical reliability. The task set included both simple commands (e.g., “Open the gripper,” “Move the arm to the home position”) and multi-step instructions (e.g., “Close the gripper, move up, and then open it again,” “Perform a waving motion from left to right”).
+
+Execution time was measured programmatically from the moment the \texttt{high\_level\_planner} node received a command until it returned a success or failure response. To allow for fair comparison across tasks, the total time was divided by the number of steps in each task, yielding an average execution time per step. Both planning approaches utilized the Gemini-2.5-Flash LLM for reasoning and subtask generation.
+
+The results, summarized in Table~\ref{tab:planning-eval}, show that the PDDL-Based approach achieved a slightly faster average execution time per step ($M = 6.83$, $SD = 1.62$) compared to the LLM-Direct approach ($M = 7.20$, $SD = 1.51$). The difference was statistically significant ($p = 0.049$) but small in magnitude ($\Delta M = 0.37$ s), suggesting that the practical impact of this time difference is negligible.
+
+In terms of reliability, the LLM-Direct method achieved a 100\% success rate, while the PDDL-Based method reached 91\%. This difference was statistically insignificant ($p > 0.05$) but indicates a robustness advantage for the direct LLM-driven planner. We believe that the lower reliability of the PDDL-based approach was primarily due to occasional errors in LLM-generated PDDL syntax, which can be mitigated through deterministic generation and schema enforcement in future iterations.
+
+To further evaluate generalization, both planners were tested with higher-level, abstract commands such as “Get the robot ready to work,” “Return to start,” and “Prepare for gripping.” In these cases, the LLM-Direct planner demonstrated significantly higher success rates, as it could interpret and decompose abstract language more flexibly than the symbolic PDDL pipeline.
+
+Since both methods rely on large language models, computational overhead was also measured. On average, each planning step involved approximately two API requests and around 3,000 input tokens. These values were consistent across both approaches, indicating similar computational cost per step.
+
+Overall, the evaluation demonstrates that both approaches achieve high task completion rates and efficient execution times, with the LLM-Direct planner excelling in generalization and interpretability, while the PDDL-based method offers more structured symbolic reasoning and scalability for well-defined tasks.
+
+\subsection{Simulation}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/gazebo_setup.png}
+\caption{UR5 with Robotiq 2F-85 gripper and depth camera in Gazebo simulation environment}
+\label{fig:simulation-gazebo-setup}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/ros2_sim_graph_full.png}
+\caption{ROS2 graph for the Gazebo simulation environment}
+\label{fig:simulation-ros2-graph}
+\end{figure}
+
+The simulation environment is implemented in Gazebo Classic and provides a complete, fully integrated setup for testing perception, motion planning, and gripper control. The system models the UR5 robotic arm equipped with a Robotiq 2F-85 gripper and a downward-facing depth camera, together with a table environment and a collection of engineering objects. All components are interfaced through ROS2, enabling real-time communication and execution of motion and perception tasks within a unified simulation framework.
+
+At the \textbf{robot and sensor level}, the UR5, gripper, and camera are simulated using standard Gazebo ROS2 interfaces. The robot exposes joint states, controllers, and transforms exactly as in a physical setup, while the RGB-D camera publishes depth and color images that integrate directly with the perception pipeline. Using \texttt{cv\_bridge}~\cite{cv_bridge}, raw Gazebo image messages are converted into OpenCV-compatible formats, allowing the vision node to operate identically to its real-world counterpart.
+
+The simulation world includes several engineered parts used for testing perception-driven tasks. While some models contain simplified collision meshes, making precise grasping less reliable, the environment is sufficient for validating perception, planning, and trajectory execution. In line with guidance from our advisor, detailed grasp evaluation will be carried out on the real hardware, while Gazebo is used primarily for motion, planning, and system integration testing.
+
+Overall, the Gazebo Classic simulation delivers a robust and realistic platform for evaluating the majority of our robotic pipeline. The ROS2 graph in Figure~\ref{fig:simulation-ros2-graph} highlights the modular structure that supports coordinated operation of all simulated components.
+
+\subsection{Hardware}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/sim_vs_real.png}
+\caption{Comparison between Simulation (Gazebo) and Real Hardware Setup (UR3e with Robotiq HandE gripper at Chulapat 14 Robotics Lab)}
+\label{fig:hardware-result-sim-vs-real}
+\end{figure}
+
+The final hardware setup provides a fully functional physical execution environment that mirrors the structure and control interfaces used in simulation. The system is built around the \textbf{UR3e robot arm} equipped with a \textbf{Robotiq HandE} gripper, deployed at the Chulapat 14 Robotics Lab. The robot is integrated with the project’s software stack through the official \texttt{ur\_robot\_driver} ROS2 interface~\cite{ur_ros2_driver}, enabling direct execution of MoveIt2-generated trajectories on the real robot.
+
+At the communication level, the workstation is configured to run \textbf{Ubuntu 22.04 natively} to ensure stable, low-latency connectivity with the UR control box. A dedicated Ethernet connection is used, with the network interface assigned to the address \texttt{10.10.0.5} as required by the UR External Control URCap. Once connected, the robot is set to External Control mode using the teach pendant, allowing ROS2 to stream motion commands directly to the arm.
+
+The hardware execution pipeline maintains the same \textbf{action and service interfaces} used in simulation, enabling a consistent programming model across both environments. Through the \texttt{ur\_moveit\_config} package, MoveIt2 handles kinematic planning, trajectory generation, and trajectory execution on the physical robot without any modification to planning or control nodes. This uniformity allows the system to seamlessly transition between simulated and real execution, while ensuring reproducibility of motion behavior.
+
+To support this dual-environment operation, the main control node automatically configures key parameters, such as the MoveIt2 move group name and the \texttt{use\_sim\_time} setting, based on whether the robot is operating in Gazebo or on real hardware. This allows the same high-level plan to be executed identically in both environments, and initial verification has confirmed that planned trajectories generated in simulation transfer accurately to the real arm.
+
+Overall, the hardware system establishes a robust bridge between the simulated development workflow and the real robotic platform. It provides reliable, responsive control of the UR3e, preserves interface compatibility with the simulation pipeline, and enables the project to validate real-world robot behavior under the same architecture used for virtual testing.
+
+
 \newpage
 \section{Limitations and Future Plans}
 
@@ -823,6 +950,57 @@ Despite the successful integration of the ASR module, several limitations remain
 
 For future development, the ASR system will be enhanced with a feedback mechanism that enables the robot to verbally confirm received commands and notify the user when tasks are completed. This interactive feedback loop aims to improve user awareness, communication transparency, and overall usability in real-world human–robot collaboration.
 \subsection{Planning}
+Despite the successful implementation and evaluation of the hierarchical planning system, several limitations remain that present opportunities for improvement in future development.
+
+\textbf{1. Limitations of the PDDL-Based Approach.}
+The most significant challenge lies in generating syntactically correct and logically consistent PDDL (Planning Domain Definition Language) files. At present, both the \texttt{domain.pddl} and \texttt{problem.pddl} files are generated entirely by a large language model. While this enables flexibility in interpreting natural language commands, it also introduces errors such as inconsistent predicates, missing type declarations, and ill-formed syntax. These issues reduce the reliability of symbolic planning, as even minor syntax errors can cause plan generation to fail.
+
+To address this, the future plan involves reducing the portion of the PDDL specification that depends on the LLM. The set of valid actions and predicates will be manually defined and validated, ensuring correctness and interpretability. Dynamic elements, such as the current state of the robot and environment, will instead be generated deterministically from live ROS2 topics and service responses. This hybrid approach aims to retain the flexibility of LLM-based interpretation while ensuring structural and syntactic integrity in the resulting PDDL files.
+
+\textbf{2. Limited Integration with Perception.}
+The current system architecture includes a dedicated \texttt{vision} node capable of providing object detection, classification, and pose estimation services. However, full integration between this perception module and the planning system has not yet been achieved. As a result, the system has primarily been evaluated on motion- and manipulation-centric tasks that do not depend on visual context.
+
+The next phase of development will focus on completing this integration, allowing the planners to reason over perceptual information and adapt plans dynamically based on the visual state of the environment. This will enable testing and evaluation on more complex, perception-dependent instructions—such as identifying, approaching, and manipulating specific objects—which more closely resemble real-world autonomous task execution scenarios.
+
+\textbf{3. Testing with Higher-Level and Abstract Commands.}
+Although preliminary experiments with abstract language commands have been conducted, broader testing is still required to evaluate robustness and adaptability. Future work will involve systematically benchmarking both the LLM-Direct and PDDL-Based approaches on abstract, multi-step, and perception-based instructions to identify the limits of current reasoning capabilities and improve high-level plan generalization.
+
+\textbf{4. Fail-Safe Mechanism.}
+Currently, the system implements an emergency stop mechanism via a predefined keyword. When the emergency stop word is detected, the robot halts all actions and remains locked in its current position until an “okay” word is received. While this prevents immediate harm, it is not fail-safe: the robot may be stopped in potentially unsafe locations, such as near obstacles or in awkward arm configurations.
+
+The planned improvement is to implement a proper fail-safe routine. In the event of an emergency stop, the robot will autonomously move to a predefined safe position (e.g., the home position) before halting, ensuring that the system is in a known, secure state. This enhancement will increase overall safety and reliability, particularly in dynamic or unstructured environments.
+
+In summary, future work will prioritize enhancing the determinism and correctness of the symbolic planning pipeline, completing the integration of the vision system, extending task complexity in experimental evaluations, and implementing robust fail-safe procedures to improve operational safety.
+
+\subsection{Simulation}
+
+Despite the successful establishment of a fully functional Gazebo Classic environment integrating perception, planning, and dynamic object attachment, several limitations remain that affect the fidelity and scope of simulation-based testing.
+
+\textbf{1. Challenges in Simulating Dynamic Gripping.}
+The primary limitation lies in Gazebo’s difficulty in accurately modeling dynamic gripping interactions. Although the IFRA Link Attacher Plugin enables attachment and detachment through service calls, it does not replicate real physical grasping forces or friction-based constraints. Achieving realistic gripping requires highly precise tuning of contact parameters, collision surfaces, and joint properties across multiple Gazebo components. In practice, these configurations are complex, brittle, and sensitive to small variations in model setup. As a result, while the grasping pipeline functions at a logical level, it does not reliably emulate real-world gripping behavior.
+
+A contributing factor is the simplified collision geometries of many simulation objects. Thin or irregularly shaped tools cannot be represented with sufficiently detailed collision meshes without causing instability or excessive computation. This makes accurate grasp testing, particularly for small engineering parts, inherently unreliable in the simulation environment.
+
+Looking forward, simulation will continue to play a key role in verifying path planning, motion execution, perception processing, and non-contact task behaviors. However, due to the inherent limitations in accurately simulating gripping, the future plan is to perform all grasping-related experiments using the physical UR5 system. 
+
+\subsection{Hardware}
+
+Despite the successful establishment of a stable and reproducible hardware execution environment, several limitations remain that currently constrain the full capabilities of the system. Addressing these limitations is essential for enabling perception-driven tasks and ensuring reliable operation of the hardware platform in real-world conditions.
+
+\textbf{1. Incomplete Vision Hardware Integration.}  
+The current hardware setup lacks a depth camera, which prevents the system from fully integrating the perception pipeline that is already operational in simulation. 
+
+The future plan is to complete the procurement of a depth camera before the beginning of the second semester. Once acquired, the camera will be mounted, calibrated, and integrated with the existing ROS2 perception stack to enable consistent visual feedback in both simulated and real environments.
+
+\textbf{2. Network Constraints and Missing WiFi Support.}  
+The system currently relies on internet connectivity to perform API calls used by several components. However, the workstation used for the hardware setup is missing a functioning WiFi driver, preventing wireless access to the internet.
+
+In simulation, this issue was circumvented by using a LAN connection for internet access. In the hardware configuration, however, the LAN port must be reserved for Ethernet communication with the UR3e control box, making simultaneous robot control and internet access infeasible.
+
+To resolve this, the future plan is to install or troubleshoot the appropriate WiFi driver, restoring wireless connectivity. This will allow the system to maintain continuous access to required online services while ensuring a dedicated wired link for real-time robot communication.
+
+In summary, future work on the hardware system will focus on integrating a physical depth camera to enable real-world perception and resolving WiFi connectivity issues to support required API-dependent components. These improvements will ensure a more capable, flexible, and perception-enabled hardware platform for the next phase of the project.
+
 
 \newpage
 \bibliographystyle{IEEEtran}
