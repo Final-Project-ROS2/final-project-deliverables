@@ -254,18 +254,20 @@ This neuro-symbolic hybrid design ensures adaptability, efficiency, and user tra
 \subsection{The Current Development of the Project}
 
 \subsubsection{Speech}
-To establish a robust Automatic Speech Recognition (ASR) foundation for robot manipulation, a \textbf{real-time speech-to-text system} was developed and implemented as a \textbf{ROS2 node} using the \textbf{AssemblyAI API}~\cite{assemblyai_docs}. Unlike the initial prototype, which processed pre-recorded audio inputs such as \textit{harvard.wav}, the new system continuously captures live audio streams, transcribes them in real time, and publishes the recognized text for downstream processing. Additionally, if no speech input is detected for \textbf{three seconds}, the node automatically stops listening and outputs the most recent transcription result.
+To establish a robust Automatic Speech Recognition (ASR) foundation for robot manipulation, a real-time speech-to-text system has been fully developed and implemented as a ROS2 node. Unlike the initial prototype, which processed pre-recorded audio inputs such as \textit{harvard.wav}, the current system continuously captures live audio streams, transcribes them in real time, and publishes the recognized text for downstream processing on the UR-ARM.
 
 AssemblyAI serves as the core transcription engine, leveraging advanced \textbf{deep learning models} to convert speech into accurate text through a structured pipeline that includes \textit{feature extraction}, \textit{acoustic modeling}, \textit{language modeling}, and \textit{decoding}~\cite{assemblyai_docs}. These stages enable the system to handle diverse speech patterns and environmental noise effectively. Furthermore, post-processing mechanisms such as punctuation restoration, capitalization, and disfluency removal enhance the clarity and readability of the generated text.
 
-As illustrated in Figure~\ref{fig: ASR_Pipeline.png}, the implemented ASR node operates through a continuous loop of capturing live microphone input, sending it as a transcription job, polling for recognition results, and checking for further user input. When no speech is detected within three seconds, the node terminates the current session and publishes the final transcription output. This workflow provides a \textbf{modular and scalable interface} that enables responsive and context-aware communication between humans and robots, supporting future integration with multimodal perception systems.
+As illustrated in Figure~\ref{fig: ASR_Pipeline.png}, the ASR node operates through a continuous loop of capturing live microphone input, sending it as a transcription job, polling for recognition results, and checking for further user input. The system introduces a \textbf{deactivation word mechanism}, where commands are sent to the planning node only if the spoken sentence ends with the word ``execute,'' and an \textbf{emergency stop feature}, which immediately halts the robot when the word ``STOP'' is spoken and can be deactivated using the word ``OKAY.'' These features replace the previous time-based three-second silence detection, enabling more responsive and controlled interactions.
+
+This workflow provides a modular and scalable interface that allows for safe, responsive, and context-aware communication between humans and robots. The ASR module has been successfully integrated with the real-world UR-ARM, establishing a foundation for future extensions, such as verbal feedback confirmation and task completion notifications, to enhance human–robot collaboration.
 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{images/ASR_Pipeline.png}
+    \includegraphics[width=0.6\linewidth]{images/asrpipe.png}
     \caption{ASR pipeline using AssemblyAI}
-    \label{fig: ASR_Pipeline.png}
+    \label{fig:ASR_Pipeline}
 \end{figure}
 
 \subsubsection{Visual}
@@ -834,6 +836,73 @@ The roles and duties of this project revolve around the four main features. Each
 \subsection{Vision}
 
 \subsection{Speech}
+
+The ASR system has been fully integrated as a ROS2 node with the UR-ARM, providing real-time speech-to-text functionality, deactivation word recognition, and an emergency stop mechanism. The node continuously captures live audio streams, transcribes commands in real time, and publishes recognized sentences to the planning node only if the sentence ends with the deactivation word ``execute.'' The emergency stop allows immediate halting of robot motion with the command ``STOP'' and can be deactivated using the word ``OKAY.'' This workflow ensures responsive, safe, and controlled interaction between the human operator and the robot.
+
+\subsubsection{Experimentation and Evaluation}
+
+The ASR system was evaluated using a set of 30 task commands of varying complexity. Three participants (Kanisorn, Methasit, and Withawin) each performed all tasks. System performance was measured in terms of successful recognition and correct transmission of the command to the planning node.
+
+\begin{table}[H]
+\centering
+\small
+\caption{ASR Command Recognition Success for Three Participants}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccc}
+\hline
+\textbf{Sentences/People} & \textbf{Kanisorn} & \textbf{Methasit} & \textbf{Withawin} \\
+\hline
+Pick up the red cube and place it on the table, execute. & 12/12 & 12/12 & 12/12 \\
+Move the arm to the home position, execute. & 8/8 & 8/8 & 8/8 \\
+Grab the green cylinder and put it in the bin, execute. & 11/11 & 11/11 & 11/11 \\
+Rotate the wrist clockwise 90 degrees, execute. & 7/7 & 7/7 & 7/7 \\
+Pick up the yellow object and stack it on the red cube, execute. & 13/13 & 13/13 & 13/13 \\
+Extend the arm forward slowly, execute. & 6/6 & 6/6 & 6/6 \\
+Move to the left side of the table, execute. & 9/9 & 9/9 & 9/9 \\
+Stop. & 1/1 & 1/1 & 1/1 \\
+Okay. & 1/1 & 1/1 & 1/1 \\
+Lift the blue box and place it on the top shelf, execute. & 12/12 & 12/12 & 12/12 \\
+Move the arm to the scanning position above the center point, execute. & 12/12 & 12/12 & 12/12 \\
+Pick up the small screw and hand it to me on the right side, execute. & 14/15 & 15/15 & 14/15 \\
+Lower the object two centimeters and hold position, execute. & 9/9 & 9/9 & 8/9 \\
+Slide the object forward and align it with the edge, execute. & 11/11 & 11/11 & 11/11 \\
+Place the green block next to the yellow block on the left, execute. & 13/13 & 13/13 & 13/13 \\
+Rotate the gripper counterclockwise 45 degrees, execute. & 7/7 & 7/7 & 7/7 \\
+Pick up the blue cylinder and rotate it vertically, execute. & 10/10 & 9/10 & 10/10 \\
+Lift the object slightly and center it over the target marker, execute. & 12/12 & 12/12 & 12/12 \\
+Move the arm upward until it reaches the safe height, execute. & 11/11 & 11/11 & 11/11 \\
+Pick up the tool and position it in front of the camera, execute. & 13/13 & 13/13 & 12/13 \\
+Push the red cube gently toward the right side, execute. & 10/10 & 9/10 & 9/10 \\
+Reach toward the far corner and check for any obstacles, execute. & 11/11 & 11/11 & 10/11 \\
+Pick up the cup and place it inside the container, execute. & 11/11 & 11/11 & 11/11 \\
+Pick up the screwdriver and place it in the tool holder slot, execute. & 13/13 & 13/13 & 13/13 \\
+Move the arm in a straight line back to the origin point, execute. & 13/13 & 13/13 & 13/13 \\
+Pick up the object and align it with the marked orientation, execute. & 12/12 & 11/12 & 12/12 \\
+Grasp the black box and slide it to the center, execute. & 11/11 & 10/11 & 11/11 \\
+Rotate joint three to the forty-degree position, execute. & 9/9 & 9/9 & 9/9 \\
+Lift the object, move it behind the container, and lower it gently, execute. & 13/13 & 13/13 & 13/13 \\
+\hline
+\textbf{Results} & 0.998 & 0.9875 & 0.9518 \\
+\textbf{Average} & \multicolumn{3}{c}{0.9791} \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\noindent \textbf{Overall performance with confidence interval.}  
+Using the three participant accuracy values, the mean ASR performance is $0.9791$.  
+The sample standard deviation is $s = 0.0242$ and the 95\% confidence interval was computed using the Participants' $t$-distribution ($df = 2$).  
+The resulting confidence interval is:
+
+\[
+0.9791 \pm 0.0602 \quad (95\%~\text{CI: } [0.919,\,1.000])
+\]
+
+\noindent The upper bound is capped at 1.000 because accuracy cannot exceed 100\%.
+
+The results demonstrate that the ASR module achieves a high recognition success rate across all participants, with a mean accuracy of approximately 97.9\%. Simple commands were consistently recognized with 100\% success, while a few long multi-step instructions occasionally produced a single misrecognition. Both the emergency stop word (``STOP'') and the deactivation word (``execute'') were detected reliably in all trials.
+
+Overall, these findings confirm that the ASR system accurately interprets natural language instructions, robustly transmits commands to the planning node, and ensures safe human–robot interaction for real-time manipulation tasks.
 
 \subsection{Planning}
 
