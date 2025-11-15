@@ -265,9 +265,9 @@ This workflow provides a modular and scalable interface that allows for safe, re
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{images/execute2.png}
+    \includegraphics[width=0.6\linewidth]{images/asrpipe.png}
     \caption{ASR pipeline using AssemblyAI}
-    \label{fig: ASR_Pipeline.png}
+    \label{fig:ASR_Pipeline}
 \end{figure}
 
 \subsubsection{Visual}
@@ -841,7 +841,7 @@ The ASR system has been fully integrated as a ROS2 node with the UR-ARM, providi
 
 \subsubsection{Experimentation and Evaluation}
 
-The ASR system was evaluated using a set of 30 task commands of varying complexity, including simple single-step instructions (e.g., ``Move the arm to the home position, execute'') and multi-step instructions (e.g., ``Lift the object, move it behind the container, and lower it gently, execute''). Three participants (Kanisorn, Methasit, and Withawin) each performed all tasks, and system performance was measured in terms of successful recognition and correct transmission of the command to the planning node.
+The ASR system was evaluated using a set of 30 task commands of varying complexity. Three participants (Kanisorn, Methasit, and Withawin) each performed all tasks. System performance was measured in terms of successful recognition and correct transmission of the command to the planning node.
 
 \begin{table}[H]
 \centering
@@ -889,11 +889,20 @@ Lift the object, move it behind the container, and lower it gently, execute. & 1
 }
 \end{table}
 
-The results demonstrate that the ASR module achieves a high recognition success rate across participants, with an average performance of approximately 97.9\%. Simple commands were consistently recognized with 100\% success, while a few complex multi-step instructions occasionally resulted in a single misrecognition. Emergency stop and deactivation word features were correctly detected in all corresponding instances.
+\noindent \textbf{Overall performance with confidence interval.}  
+Using the three participant accuracy values, the mean ASR performance is $0.9791$.  
+The sample standard deviation is $s = 0.0242$ and the 95\% confidence interval was computed using the Participants' $t$-distribution ($df = 2$).  
+The resulting confidence interval is:
 
-Overall, these results confirm that the ASR system reliably interprets natural language instructions, accurately transmits commands to the planning node, and supports safe human–robot interaction for real-time manipulation tasks.
+\[
+0.9791 \pm 0.0602 \quad (95\%~\text{CI: } [0.919,\,1.000])
+\]
 
-\newpage
+\noindent The upper bound is capped at 1.000 because accuracy cannot exceed 100\%.
+
+The results demonstrate that the ASR module achieves a high recognition success rate across all participants, with a mean accuracy of approximately 97.9\%. Simple commands were consistently recognized with 100\% success, while a few long multi-step instructions occasionally produced a single misrecognition. Both the emergency stop word (``STOP'') and the deactivation word (``execute'') were detected reliably in all trials.
+
+Overall, these findings confirm that the ASR system accurately interprets natural language instructions, robustly transmits commands to the planning node, and ensures safe human–robot interaction for real-time manipulation tasks.
 
 \subsection{Planning}
 
