@@ -1136,6 +1136,59 @@ Since both methods rely on large language models, computational overhead was als
 
 Overall, the evaluation demonstrates that both approaches achieve high task completion rates and efficient execution times, with the LLM-Direct planner excelling in generalization and interpretability, while the PDDL-based method offers more structured symbolic reasoning and scalability for well-defined tasks.
 
+\paragraph{Additional Experiments}
+
+In addition to the primary evaluation using the cloud-hosted Gemini-2.5-Flash model, we performed further experiments to assess:  
+(1) the performance impact of executing the planner with a locally hosted LLM, and  
+(2) the responsiveness of the system during emergency stop scenarios.
+
+\paragraph{Local LLM Performance Comparison}
+
+To reduce cloud dependency and eliminate API rate-limit constraints, we evaluated the planning pipeline using a local language model. We deployed \textbf{GPT-OSS:20b} via \texttt{Ollama} on our computer which is equipped with an NVIDIA RTX 3080 GPU. The same set of 13 task instructions and evaluation methodology were used to ensure comparability with the original Gemini-based experiments.
+
+Table~\ref{tab:local-llm-results} summarizes the results.
+
+\begin{table}[h!]
+\centering
+\caption{Cloud vs Local LLM Performance Comparison}
+\label{tab:local-llm-results}
+\begin{tabular}{lcc}
+\hline
+\textbf{Metric} & \textbf{Cloud} & \textbf{Local} \\
+\hline
+Execution Time per Step (s) & $7.20 \pm 0.25$ & $17.536 \pm 0.838$ \\
+Success Rate (LLM-Direct) & $100.0\%$ & $100.0\%$ \\
+Success Rate (PDDL-Based) & $91.0\%$ & $90.7\%$ \\
+\hline
+\end{tabular}
+\end{table}
+
+The locally run LLM achieved nearly identical success rates to the cloud model, indicating that the underlying reasoning quality remains strong even without cloud-scale compute. However, execution time increased significantly, from $M=7.20$ s (Gemini) to $M=17.536$ s (local), with a two-tailed t-test confirming that the difference is \textbf{extremely statistically significant} ($p < 0.0001$).
+
+We believe that future improvements, such as model quantization, GPU inference optimization, or using a smaller local model, could substantially reduce this latency. Nevertheless, the local model provides important practical benefits: improved reliability in unstable network environments, no dependence on external providers, and no exposure to rate limits.
+
+\paragraph{Emergency Stop Latency Evaluation}
+
+To evaluate system safety and responsiveness, we tested how quickly the UR robotic arm stops when the operator speaks the keyword \textit{``emergency''}. During the experiment, the robot was placed in continuous motion while the keyword was issued at random times. 
+
+The results are summarized in Table~\ref{tab:emergency-stop}.
+
+\begin{table}[h!]
+\centering
+\caption{Emergency Stop Latency Evaluation}
+\label{tab:emergency-stop}
+\begin{tabular}{lc}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+Average Stop Time (s) & $1.412$ \\
+Standard Deviation (s) & $0.360$ \\
+95\% Confidence Interval & $1.412 \pm 0.141$ \\
+\hline
+\end{tabular}
+\end{table}
+
+
 \subsection{Simulation}
 
 \begin{figure}[h]
