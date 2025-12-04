@@ -1232,6 +1232,24 @@ To support this dual-environment operation, the main control node automatically 
 
 Overall, the hardware system establishes a robust bridge between the simulated development workflow and the real robotic platform. It provides reliable, responsive control of the UR3e, preserves interface compatibility with the simulation pipeline, and enables the project to validate real-world robot behavior under the same architecture used for virtual testing.
 
+\subsection{Demonstrations}
+To complement the quantitative and qualitative results presented above, we provide demonstration videos showcasing the integrated performance and important features of the proposed system. 
+
+\subsubsection*{1. Full System Demonstration in Gazebo}
+This video illustrates the complete system operating in the Gazebo simulation environment, integrating automatic speech recognition (ASR), the main planning pipeline, and the perception module. The user issues natural language commands referring to specific positions or objects in the scene, and the robot executes the appropriate motion based on information supplied by the vision module.  
+\\\textbf{Video:} \href{https://drive.google.com/file/d/1draHgIV_FaXqrEH4p6pD_vMLNN0HLVL3/view?usp=sharing}{\underline{Full System Demonstration}}
+
+\subsubsection*{2. ASR + Planning Pipeline in Simulation and Real Hardware}
+This demonstration shows the ASR module working jointly with the planning pipeline in both the Gazebo simulation and the physical UR arm. The two views are overlayed to highlight consistency between the simulated and real environments. In this scenario, only simple movement commands are issued, as the depth-based perception hardware is not yet integrated.  
+\\\textbf{Video:} \href{https://drive.google.com/file/d/1yYsGxQITKcc62LWY9pjuGWzi5-gLacgh/view?usp=sharing}{\underline{Simulation + Real Hardware Demonstration}}
+
+\subsubsection*{3. Emergency Stop Functionality on Real Hardware}
+This video showcases the safety mechanism implemented in our system. The robot is programmatically commanded to move left and right using ROS~2 action calls. When the user says the emergency keyword \emph{``stop''}, the robot halts immediately and enters an emergency lock state. Subsequent motion commands are ignored until the user explicitly clears the lock by saying \emph{``Okay''}.  
+\\\textbf{Video:} \href{https://drive.google.com/file/d/1_-0iNvEOgO9gcwzwICsukVk4yVQje8fW/view?usp=sharing}{\underline{Emergency Stop Demonstration}}
+
+\subsubsection*{4. Plan Revision via Language Commands}
+This demonstration highlights the ability of the high-level planner to revise an existing plan based on natural language instructions. The scenario includes both Gazebo simulation and real hardware overlayed. The user initially commands the robot to move upward and then open the gripper. Instead of confirming the plan, the user instructs: \emph{``Swap the action order, execute.''} The system correctly revises the plan, demonstrating contextual memory and dynamic plan adjustment.  
+\\\textbf{Video:} \href{https://drive.google.com/file/d/1QjeXoCuzd0tnjiekhAuwajCcLh3JXEpf/view?usp=sharing}{\underline{Plan Revision Demonstration}}
 
 \newpage
 \section{Limitations and Future Plans}
