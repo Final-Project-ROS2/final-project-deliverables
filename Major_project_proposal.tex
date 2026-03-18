@@ -922,6 +922,342 @@ The expected outcome is a system that reduces downtime, improves safety, and sup
 The roles and duties of this project revolve around the four main features. Each feature is allocated to a team member as outlined in Table~\ref{tab:roles_responsibilities}
 
 \newpage
+\section{Results}
+
+\subsection{Vision}
+
+Vision pipeline was evaluated in simulation using Gazebo across 5 distinct worlds, each containing 5 objects. The evaluation focused on object detection, classification, grasp pose estimation, and scene understanding, as well as the accuracy of pixel-to-real-world coordinate conversion. The testing procedure for each module is as follows:
+
+\begin{itemize}
+    \item \textbf{SAM (Segment Anything Model)}: Each object in the world was segmented, and results were recorded in terms of bounding box coordinates, detection confidence, and Average Precision (AP) for IoU $\geq 0.5$.
+    
+    \item \textbf{CLIP Classifier}: Detected object regions were classified using the CLIP model. Performance metrics included predicted labels, confidence scores, and Top-1 accuracy for each object.
+    
+    \item \textbf{GraspNet}: For each detected object, the system estimated grasp poses. Recorded metrics included position $(x, y, z)$, orientation $(x, y, z, w)$, quality score $Q$, grasp width, approach angle, and overall success rate (SR) in simulation grasps.
+    
+    \item \textbf{Scene Understanding}: The module evaluated object relations and spatial context. Metrics recorded included the predicted relation list, spatial accuracy, and adjacency accuracy between objects.
+    
+    \item \textbf{Pixel-to-Real Conversion}: Depth and RGB data were used to convert pixel coordinates to real-world coordinates. Accuracy was measured using Root Mean Square Error (RMSE) against ground-truth positions in Gazebo.
+\end{itemize}
+
+\paragraph{Evaluation Procedure}
+For each world:
+\begin{enumerate}
+    \item Spawn 5 objects with randomized positions and orientations.
+    \item Run the \texttt{/vision/run\_pipeline} service once to process the entire scene.
+    \item Collect output from each module (SAM, CLIP, GraspNet, Scene Understanding) and log metrics.
+    \item Compare pixel-to-real coordinates against ground truth for RMSE computation.
+    \item Repeat for all 10 worlds to obtain aggregate performance statistics.
+\end{enumerate}
+
+\subsubsection{Experimentation and Evaluation}
+
+\begin{table}[h!]
+\centering
+\caption{Summary of vision-module benchmark results (5 worlds $\times$ 5 objects = 25 objects)}
+\label{tab:vision-eval}
+\begin{tabular}{lcc}
+\hline
+\textbf{Model} & \textbf{Benchmark (metric)} & \textbf{Result} \\
+\hline
+SAM (segmenter) & AP (IoU $\ge$ 0.5) & $0.7408$ \\
+CLIP (region classifier) & Top-1 Accuracy (TOP1 / ALL) & $0.85$ \\
+GraspNet (grasp proposal) & Quality Score (Q) & $0.746$ \\
+Scene understanding & Spatial Accuracy (Corrected Relation/ Total) & $0.98$ \\
+Pixel-to-Real Service & RMSE (meters) & $0.05365$ \\
+\hline
+\end{tabular}
+\end{table}
+
+The vision pipeline was evaluated on five distinct Gazebo worlds, each populated with five unique objects (25 object instances total). For each object we ran the perception stack end-to-end (SAM $\rightarrow$ CLIP $\rightarrow$ GraspNet $\rightarrow$ Scene module) and aggregated per-object scores into the single summary shown in Table~\ref{tab:vision-eval}. Below we explain each metric, how it was computed, and why it was chosen.
+
+\paragraph{SAM — Average Precision (AP) at IoU $\ge$ 0.5.}
+We report region-level Average Precision computed using a single IoU threshold of 0.5 (the PASCAL VOC–style AP@0.5 convention). For each predicted mask we compute the Intersection-over-Union (IoU) with the ground-truth mask:
+\[
+\mathrm{IoU} = \frac{|\text{Prediction} \cap \text{GroundTruth}|}{|\text{Prediction} \cup \text{GroundTruth}|}.
+\]
+A prediction is considered a true positive when IoU $\ge 0.5$; precision–recall curves are constructed across confidence thresholds and AP is the area under the precision–recall curve for the instance class. The reported $0.7408$ is the mean AP over all 25 object instances. This AP formulation follows established segmentation/detection protocols and is consistent with how promptable segmentation models (e.g., SAM) are typically evaluated. \cite{kirillov2023segment,padilla2021metrics}
+
+\paragraph{CLIP — Top-1 Accuracy.}
+CLIP is used to assign a semantic label (region caption/class) to each SAM proposal. We evaluate classification accuracy in the standard Top-1 sense: the model's highest-scoring label is compared to the ground-truth label; Top-1 accuracy is the fraction of proposals for which this highest score equals the ground truth. The reported value ($0.85$) is computed as
+\[
+\text{Top-1 Acc.} = \frac{\#\{\text{correct top predictions}\}}{\#\{\text{evaluated proposals}\}}
+\]
+over the 25 objects. Using CLIP for region classification leverages its zero-shot image–text embedding ability and this metric directly measures semantic assignment fidelity. \cite{radford2021clip,openai_clip}
+
+\paragraph{GraspNet — Quality Score (Q).}
+For grasping we used GraspNet-style grasp proposals and evaluated a per-proposal \emph{Quality Score} (Q). In practice Q is a consolidated score that reflects the predicted grasp's feasibility under geometric and collision constraints (for example: antipodal/force-closure geometry, clearance from collisions, and stability heuristics used in the dataset/simulator). During evaluation we rank proposals by their Q value and compute the average Q over the top-K proposals per object (K chosen to match the GraspNet evaluation protocol used in our simulator). The reported aggregate score $0.746$ is the mean Q across 25 objects. This metric correlates with practical grasp success probability when proposals are executed in simulator/hardware and follows the GraspNet benchmarking philosophy. \cite{fang2020graspnet,wu2024grasping}
+
+\paragraph{Scene understanding — Spatial Accuracy.}
+Spatial Accuracy measures how often the scene module correctly predicts metric spatial relationships (e.g., object coordinates relative to a world origin, and pairwise spatial predicates such as \texttt{left-of}, \texttt{on-top-of} within the chosen tolerance). Concretely, we evaluate:
+\begin{itemize}
+  \item \textbf{Positional error}: Euclidean distance between predicted object centroid and ground-truth centroid in world coordinates; a prediction is \emph{spatially correct} when the error $\leq$ a task threshold (here, 2\,cm).
+  \item \textbf{Relational correctness}: fraction of pairwise relation queries (e.g., ``is A left of B'') answered correctly.
+\end{itemize}
+Spatial Accuracy reported ($0.98$) is the fraction of all positional + relation checks that passed. This combined metric matches recent 3D spatial understanding benchmarks which evaluate both metric and relational components. \cite{daxberger2025mmspatial,zhao2023vsd}
+
+
+\paragraph{Pixel-to-Real Service — RMSE (Root Mean Square Error).}
+The Pixel-to-Real module converts 2D pixel coordinates and depth values into 3D world coordinates using the camera intrinsic model. We evaluate accuracy using RMSE between predicted world points $\hat{p}_i$ and ground-truth world points $p_i$:
+\[
+\mathrm{RMSE} = 
+\sqrt{
+\frac{1}{N} \sum_{i=1}^{N} 
+\left\| \hat{p}_i - p_i \right\|^{2}
+}.
+\]
+This metric is widely used for depth-based 3D reconstruction and camera geometry evaluation. \cite{yin2021learning,teed2020raft3d}  
+Our Pixel-to-Real service achieves an RMSE of \textbf{0.05365\,m}, demonstrating high accuracy in metric projection and depth-to-world mapping across all worlds.
+
+
+\subsection{Speech}
+
+The ASR system has been fully integrated as a ROS2 node, providing real-time speech-to-text functionality, deactivation word recognition, and an emergency stop mechanism. The node continuously captures live audio streams, transcribes commands in real time, and publishes recognized sentences to the planning node only if the sentence ends with the deactivation word ``execute.'' The emergency stop allows immediate halting of robot motion with the command ``STOP'' and can be deactivated using the word ``OKAY.'' This workflow ensures responsive, safe, and controlled interaction between the human operator and the robot.
+
+\subsubsection{Experimentation and Evaluation}
+
+The ASR system was evaluated using a set of 30 task commands of varying complexity. Three participants (Kanisorn, Methasit, and Withawin) each performed all tasks. System performance was measured in terms of successful recognition and correct transmission of the command to the planning node.
+
+\begin{table}[H]
+\centering
+\small
+\caption{ASR Command Recognition Success for Three Participants}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccc}
+\hline
+\textbf{Sentences/People} & \textbf{Kanisorn} & \textbf{Methasit} & \textbf{Withawin} \\
+\hline
+Pick up the red cube and place it on the table, execute. & 12/12 & 12/12 & 12/12 \\
+Move the arm to the home position, execute. & 8/8 & 8/8 & 8/8 \\
+Grab the green cylinder and put it in the bin, execute. & 11/11 & 11/11 & 11/11 \\
+Rotate the wrist clockwise 90 degrees, execute. & 7/7 & 7/7 & 7/7 \\
+Pick up the yellow object and stack it on the red cube, execute. & 13/13 & 13/13 & 13/13 \\
+Extend the arm forward slowly, execute. & 6/6 & 6/6 & 6/6 \\
+Move to the left side of the table, execute. & 9/9 & 9/9 & 9/9 \\
+Stop. & 1/1 & 1/1 & 1/1 \\
+Okay. & 1/1 & 1/1 & 1/1 \\
+Lift the blue box and place it on the top shelf, execute. & 12/12 & 12/12 & 12/12 \\
+Move the arm to the scanning position above the center point, execute. & 12/12 & 12/12 & 12/12 \\
+Pick up the small screw and hand it to me on the right side, execute. & 14/15 & 15/15 & 14/15 \\
+Lower the object two centimeters and hold position, execute. & 9/9 & 9/9 & 8/9 \\
+Slide the object forward and align it with the edge, execute. & 11/11 & 11/11 & 11/11 \\
+Place the green block next to the yellow block on the left, execute. & 13/13 & 13/13 & 13/13 \\
+Rotate the gripper counterclockwise 45 degrees, execute. & 7/7 & 7/7 & 7/7 \\
+Pick up the blue cylinder and rotate it vertically, execute. & 10/10 & 9/10 & 10/10 \\
+Lift the object slightly and center it over the target marker, execute. & 12/12 & 12/12 & 12/12 \\
+Move the arm upward until it reaches the safe height, execute. & 11/11 & 11/11 & 11/11 \\
+Pick up the tool and position it in front of the camera, execute. & 13/13 & 13/13 & 12/13 \\
+Push the red cube gently toward the right side, execute. & 10/10 & 9/10 & 9/10 \\
+Reach toward the far corner and check for any obstacles, execute. & 11/11 & 11/11 & 10/11 \\
+Pick up the cup and place it inside the container, execute. & 11/11 & 11/11 & 11/11 \\
+Pick up the screwdriver and place it in the tool holder slot, execute. & 13/13 & 13/13 & 13/13 \\
+Move the arm in a straight line back to the origin point, execute. & 13/13 & 13/13 & 13/13 \\
+Pick up the object and align it with the marked orientation, execute. & 12/12 & 11/12 & 12/12 \\
+Grasp the black box and slide it to the center, execute. & 11/11 & 10/11 & 11/11 \\
+Rotate joint three to the forty-degree position, execute. & 9/9 & 9/9 & 9/9 \\
+Lift the object, move it behind the container, and lower it gently, execute. & 13/13 & 13/13 & 13/13 \\
+\hline
+\textbf{Results} & 0.998 & 0.9875 & 0.9518 \\
+\textbf{Average} & \multicolumn{3}{c}{0.9791} \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\noindent \textbf{Overall performance with confidence interval.}  
+Using the three participant accuracy values, the mean ASR performance is $0.9791$.  
+The sample standard deviation is $s = 0.0242$ and the 95\% confidence interval was computed using the Participants' $t$-distribution ($df = 2$).  
+The resulting confidence interval is:
+
+\[
+0.9791 \pm 0.0602 \quad (95\%~\text{CI: } [0.919,\,1.000])
+\]
+
+\noindent The upper bound is capped at 1.000 because accuracy cannot exceed 100\%.
+
+The results demonstrate that the ASR module achieves a high recognition success rate across all participants, with a mean accuracy of approximately 97.9\%. Simple commands were consistently recognized with 100\% success, while a few long multi-step instructions occasionally produced a single misrecognition. Both the emergency stop word (``STOP'') and the deactivation word (``execute'') were detected reliably in all trials.
+
+Overall, these findings confirm that the ASR system accurately interprets natural language instructions, robustly transmits commands to the planning node, and ensures safe human–robot interaction for real-time manipulation tasks.
+
+\subsection{Planning}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/ros2_graph_updated.png}
+\caption{Final ROS2 Graph for the Hierarchical Planning System}
+\label{fig:planning-result-ros2-graph}
+\end{figure}
+
+The final planning system is implemented as a fully integrated hierarchical framework that connects high-level reasoning, task decomposition, and low-level motion control within the ROS2 environment. It provides an end-to-end pipeline that enables the robot to interpret natural language instructions, generate structured task plans, and execute precise physical motions safely and efficiently.
+
+At the \textbf{low level}, the \texttt{low\_level\_planner\_executor} node serves as the motion control core. It performs path planning and trajectory execution using Cartesian motion enforcement and joint-space constraints to ensure predictable and smooth operation. The node provides several dedicated action servers, including \texttt{/plan\_cartesian\_relative}, \texttt{/get\_current\_pose}, \texttt{/set\_joint\_angles}, and \texttt{/plan\_complex\_cartesian\_steps}, enabling fine-grained control and feedback of the robot’s kinematic state.
+
+The \textbf{medium-level planner} acts as an intermediary between symbolic reasoning and motion execution. Implemented with the LangChain framework~\cite{langchain-docs}, it treats low-level planning capabilities as callable “tools,” allowing dynamic composition of motion sequences through the \texttt{/medium\_level} action server. This design enables flexible execution of subtasks generated by the higher-level planners while maintaining direct communication with perception and speech modules.
+
+At the \textbf{high level}, two complementary planning paradigms are supported:
+\begin{enumerate}
+\item \textbf{LLM-Direct Planning:} An AI agent interprets natural language commands and directly produces a structured sequence of subtasks for execution.
+\item \textbf{Symbolic (PDDL-Based) Planning:} Commands are converted into PDDL problem and domain definitions, which are solved by the Fast Downward planner~\cite{the-fast-downward-planning-system} to yield a formal action plan.
+\end{enumerate}
+Both methods produce executable plans that are displayed to the user for review and confirmation. The LLM-Direct approach allows for greater flexibility and responsiveness, while the PDDL-based approach provides more explicit logical structure and interpretability.
+
+The planning architecture integrates closely with perception and speech. The \texttt{vision} node provides environmental and object-level context for reasoning, and the \texttt{asr} node publishes transcribed commands to a topic, facilitating event-driven interaction. Safety is handled through an emergency protocol in which the \texttt{low\_level\_planner\_executor} subscribes to an \texttt{/emergency} topic capable of interrupting motion instantly upon detection of a critical keyword.
+
+Overall, the planning subsystem embodies a coherent multi-layered design that connects high-level cognitive planning with deterministic motion execution. It enables the robot to autonomously interpret, plan, and act on user instructions, demonstrating the viability of combining language-driven AI planning with classical motion control in a modular and extensible ROS2-based framework.
+
+\subsubsection{Experimentation and Evaluation}
+
+\begin{table}[h!]
+\centering
+\caption{Comparison of LLM-Direct and PDDL-Based Planning Approaches}
+\label{tab:planning-eval}
+\begin{tabular}{lccc}
+\hline
+\textbf{Metric} & \textbf{LLM-Direct} & \textbf{PDDL-Based} \\
+\hline
+Execution Time per Step (s) & $7.20 \pm 0.25$ & $6.83 \pm 0.27$ \\
+Success Rate (\%) & $100.0$ & $91.0$ \\
+LLM Requests per Step & $2.0$ & $2.0$ \\
+Tokens per Step & $\approx 3{,}000$ & $\approx 3{,}000$ \\
+\hline
+\end{tabular}
+\begin{flushleft}
+\footnotesize{$^{*}$Statistically significant at $\alpha = 0.05$.}
+\end{flushleft}
+\end{table}
+
+The planning system was evaluated using a set of 13 task instructions of varying complexity and step counts, each executed five times for statistical reliability. The task set included both simple commands (e.g., “Open the gripper,” “Move the arm to the home position”) and multi-step instructions (e.g., “Close the gripper, move up, and then open it again,” “Perform a waving motion from left to right”).
+
+Execution time was measured programmatically from the moment the \texttt{high\_level\_planner} node received a command until it returned a success or failure response. To allow for fair comparison across tasks, the total time was divided by the number of steps in each task, yielding an average execution time per step. Both planning approaches utilized the Gemini-2.5-Flash LLM for reasoning and subtask generation.
+
+The results, summarized in Table~\ref{tab:planning-eval}, show that the PDDL-Based approach achieved a slightly faster average execution time per step ($M = 6.83$, $SD = 1.62$) compared to the LLM-Direct approach ($M = 7.20$, $SD = 1.51$). The difference was statistically significant ($p = 0.049$) but small in magnitude ($\Delta M = 0.37$ s), suggesting that the practical impact of this time difference is negligible.
+
+In terms of reliability, the LLM-Direct method achieved a 100\% success rate, while the PDDL-Based method reached 91\%. This difference was statistically insignificant ($p > 0.05$) but indicates a robustness advantage for the direct LLM-driven planner. We believe that the lower reliability of the PDDL-based approach was primarily due to occasional errors in LLM-generated PDDL syntax, which can be mitigated through deterministic generation and schema enforcement in future iterations.
+
+To further evaluate generalization, both planners were tested with higher-level, abstract commands such as “Get the robot ready to work,” “Return to start,” and “Prepare for gripping.” In these cases, the LLM-Direct planner demonstrated significantly higher success rates, as it could interpret and decompose abstract language more flexibly than the symbolic PDDL pipeline.
+
+Since both methods rely on large language models, computational overhead was also measured. On average, each planning step involved approximately two API requests and around 3,000 input tokens. These values were consistent across both approaches, indicating similar computational cost per step.
+
+Overall, the evaluation demonstrates that both approaches achieve high task completion rates and efficient execution times, with the LLM-Direct planner excelling in generalization and interpretability, while the PDDL-based method offers more structured symbolic reasoning and scalability for well-defined tasks.
+
+\subsection{Simulation}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/gazebo_setup.png}
+\caption{UR5 with Robotiq 2F-85 gripper and depth camera in Gazebo simulation environment}
+\label{fig:simulation-gazebo-setup}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/ros2_sim_graph_full.png}
+\caption{ROS2 graph for the Gazebo simulation environment}
+\label{fig:simulation-ros2-graph}
+\end{figure}
+
+The simulation environment is implemented in Gazebo Classic and provides a complete, fully integrated setup for testing perception, motion planning, and gripper control. The system models the UR5 robotic arm equipped with a Robotiq 2F-85 gripper and a downward-facing depth camera, together with a table environment and a collection of engineering objects. All components are interfaced through ROS2, enabling real-time communication and execution of motion and perception tasks within a unified simulation framework.
+
+At the \textbf{robot and sensor level}, the UR5, gripper, and camera are simulated using standard Gazebo ROS2 interfaces. The robot exposes joint states, controllers, and transforms exactly as in a physical setup, while the RGB-D camera publishes depth and color images that integrate directly with the perception pipeline. Using \texttt{cv\_bridge}~\cite{cv_bridge}, raw Gazebo image messages are converted into OpenCV-compatible formats, allowing the vision node to operate identically to its real-world counterpart.
+
+The simulation world includes several engineered parts used for testing perception-driven tasks. While some models contain simplified collision meshes, making precise grasping less reliable, the environment is sufficient for validating perception, planning, and trajectory execution. In line with guidance from our advisor, detailed grasp evaluation will be carried out on the real hardware, while Gazebo is used primarily for motion, planning, and system integration testing.
+
+Overall, the Gazebo Classic simulation delivers a robust and realistic platform for evaluating the majority of our robotic pipeline. The ROS2 graph in Figure~\ref{fig:simulation-ros2-graph} highlights the modular structure that supports coordinated operation of all simulated components.
+
+\subsection{Hardware}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/sim_vs_real.png}
+\caption{Comparison between Simulation (Gazebo) and Real Hardware Setup (UR3e with Robotiq HandE gripper at Chulapat 14 Robotics Lab)}
+\label{fig:hardware-result-sim-vs-real}
+\end{figure}
+
+The final hardware setup provides a fully functional physical execution environment that mirrors the structure and control interfaces used in simulation. The system is built around the \textbf{UR3e robot arm} equipped with a \textbf{Robotiq HandE} gripper, deployed at the Chulapat 14 Robotics Lab. The robot is integrated with the project’s software stack through the official \texttt{ur\_robot\_driver} ROS2 interface~\cite{ur_ros2_driver}, enabling direct execution of MoveIt2-generated trajectories on the real robot.
+
+At the communication level, the workstation is configured to run \textbf{Ubuntu 22.04 natively} to ensure stable, low-latency connectivity with the UR control box. A dedicated Ethernet connection is used, with the network interface assigned to the address \texttt{10.10.0.5} as required by the UR External Control URCap. Once connected, the robot is set to External Control mode using the teach pendant, allowing ROS2 to stream motion commands directly to the arm.
+
+The hardware execution pipeline maintains the same \textbf{action and service interfaces} used in simulation, enabling a consistent programming model across both environments. Through the \texttt{ur\_moveit\_config} package, MoveIt2 handles kinematic planning, trajectory generation, and trajectory execution on the physical robot without any modification to planning or control nodes. This uniformity allows the system to seamlessly transition between simulated and real execution, while ensuring reproducibility of motion behavior.
+
+To support this dual-environment operation, the main control node automatically configures key parameters, such as the MoveIt2 move group name and the \texttt{use\_sim\_time} setting, based on whether the robot is operating in Gazebo or on real hardware. This allows the same high-level plan to be executed identically in both environments, and initial verification has confirmed that planned trajectories generated in simulation transfer accurately to the real arm.
+
+Overall, the hardware system establishes a robust bridge between the simulated development workflow and the real robotic platform. It provides reliable, responsive control of the UR3e, preserves interface compatibility with the simulation pipeline, and enables the project to validate real-world robot behavior under the same architecture used for virtual testing.
+
+
+\newpage
+\section{Limitations and Potential Future Improvements}
+
+\subsection{Vision}
+
+Despite the effective implementation of the Image Processing pipeline, multiple limitations remain.
+Currently, the pipeline relies on RGB-D cameras with known calibration and a fixed mounting level. Variations in camera tilt, slope, or unexpected viewpoints can adversely affect the accuracy of SAM segmentation and GraspNet grasp estimation. Objects that are heavily occluded, overlapping, or partially outside the camera's field of view may be detected incorrectly or not at all, leading to reduced reliability in cluttered or dynamic environments. 
+
+The system also assumes objects are rigid and have simple geometries. Deformable, reflective, or transparent objects can produce inaccurate depth readings, which may propagate errors to CLIP classification, grasp pose estimation, and scene understanding. GraspNet performance, in particular, is sensitive to noisy depth data, and unusual object orientations or slopes can significantly reduce the quality score and success rate of predicted grasps. 
+
+Scene Understanding currently infers spatial relationships based solely on detected bounding boxes and object centroids. Complex interactions, fine-grained occlusions, or non-standard arrangements may result in incomplete or inaccurate relational graphs. Furthermore, the pipeline does not yet incorporate temporal consistency, meaning rapid movements or real-time dynamic changes in the scene can produce unstable predictions. 
+
+Finally, while pixel-to-real conversion provides reasonable accuracy in controlled simulations, it remains sensitive to camera calibration errors, sensor noise, and depth image quantization. RMSE can increase when objects are placed at extreme angles, distances, or outside the ideal sensor range. 
+
+For future development, these limitations could be addressed by incorporating multi-view or higher-resolution sensors, improving depth filtering and denoising, extending GraspNet and scene understanding models to handle irregular objects, and integrating temporal smoothing or tracking to enhance robustness in dynamic real-world scenarios. These improvements aim to increase perception reliability, grasp success, and overall system usability in complex and unstructured environments.
+
+\subsection{Speech}
+Despite the successful integration of the ASR module, several limitations remain. Currently, the system supports only one deactivation word ``EXECUTE'' which must appear at the end of a spoken command for it to be sent to the planning node. Commands without this keyword are ignored, which can reduce flexibility in natural speech interactions. Similarly, the emergency stop feature currently recognizes only the word ``STOP'' to immediately halt robot operations, and can only be deactivated by saying ``OKAY.'' While these constraints ensure reliability and safety, they also limit the diversity of voice inputs the system can handle.
+
+For future development, the ASR system will be enhanced with a feedback mechanism that enables the robot to verbally confirm received commands and notify the user when tasks are completed. This interactive feedback loop aims to improve user awareness, communication transparency, and overall usability in real-world human–robot collaboration.
+\subsection{Planning}
+Despite the successful implementation and evaluation of the hierarchical planning system, several limitations remain that present opportunities for improvement in future development.
+
+\textbf{1. Limitations of the PDDL-Based Approach.}
+The most significant challenge lies in generating syntactically correct and logically consistent PDDL (Planning Domain Definition Language) files. At present, both the \texttt{domain.pddl} and \texttt{problem.pddl} files are generated entirely by a large language model. While this enables flexibility in interpreting natural language commands, it also introduces errors such as inconsistent predicates, missing type declarations, and ill-formed syntax. These issues reduce the reliability of symbolic planning, as even minor syntax errors can cause plan generation to fail.
+
+To address this, the future plan involves reducing the portion of the PDDL specification that depends on the LLM. The set of valid actions and predicates will be manually defined and validated, ensuring correctness and interpretability. Dynamic elements, such as the current state of the robot and environment, will instead be generated deterministically from live ROS2 topics and service responses. This hybrid approach aims to retain the flexibility of LLM-based interpretation while ensuring structural and syntactic integrity in the resulting PDDL files.
+
+\textbf{2. Limited Integration with Perception.}
+The current system architecture includes a dedicated \texttt{vision} node capable of providing object detection, classification, and pose estimation services. However, full integration between this perception module and the planning system has not yet been achieved. As a result, the system has primarily been evaluated on motion- and manipulation-centric tasks that do not depend on visual context.
+
+The next phase of development will focus on completing this integration, allowing the planners to reason over perceptual information and adapt plans dynamically based on the visual state of the environment. This will enable testing and evaluation on more complex, perception-dependent instructions—such as identifying, approaching, and manipulating specific objects—which more closely resemble real-world autonomous task execution scenarios.
+
+\textbf{3. Testing with Higher-Level and Abstract Commands.}
+Although preliminary experiments with abstract language commands have been conducted, broader testing is still required to evaluate robustness and adaptability. Future work will involve systematically benchmarking both the LLM-Direct and PDDL-Based approaches on abstract, multi-step, and perception-based instructions to identify the limits of current reasoning capabilities and improve high-level plan generalization.
+
+\textbf{4. Fail-Safe Mechanism.}
+Currently, the system implements an emergency stop mechanism via a predefined keyword. When the emergency stop word is detected, the robot halts all actions and remains locked in its current position until an “okay” word is received. While this prevents immediate harm, it is not fail-safe: the robot may be stopped in potentially unsafe locations, such as near obstacles or in awkward arm configurations.
+
+The planned improvement is to implement a proper fail-safe routine. In the event of an emergency stop, the robot will autonomously move to a predefined safe position (e.g., the home position) before halting, ensuring that the system is in a known, secure state. This enhancement will increase overall safety and reliability, particularly in dynamic or unstructured environments.
+
+In summary, future work will prioritize enhancing the determinism and correctness of the symbolic planning pipeline, completing the integration of the vision system, extending task complexity in experimental evaluations, and implementing robust fail-safe procedures to improve operational safety.
+
+\subsection{Simulation}
+
+Despite the successful establishment of a fully functional Gazebo Classic environment integrating perception, planning, and dynamic object attachment, several limitations remain that affect the fidelity and scope of simulation-based testing.
+
+\textbf{1. Challenges in Simulating Dynamic Gripping.}
+The primary limitation lies in Gazebo’s difficulty in accurately modeling dynamic gripping interactions. Although the IFRA Link Attacher Plugin enables attachment and detachment through service calls, it does not replicate real physical grasping forces or friction-based constraints. Achieving realistic gripping requires highly precise tuning of contact parameters, collision surfaces, and joint properties across multiple Gazebo components. In practice, these configurations are complex, brittle, and sensitive to small variations in model setup. As a result, while the grasping pipeline functions at a logical level, it does not reliably emulate real-world gripping behavior.
+
+A contributing factor is the simplified collision geometries of many simulation objects. Thin or irregularly shaped tools cannot be represented with sufficiently detailed collision meshes without causing instability or excessive computation. This makes accurate grasp testing, particularly for small engineering parts, inherently unreliable in the simulation environment.
+
+Looking forward, simulation will continue to play a key role in verifying path planning, motion execution, perception processing, and non-contact task behaviors. However, due to the inherent limitations in accurately simulating gripping, the future plan is to perform all grasping-related experiments using the physical UR5 system. 
+
+\subsection{Hardware}
+
+Despite the successful establishment of a stable and reproducible hardware execution environment, several limitations remain that currently constrain the full capabilities of the system. Addressing these limitations is essential for enabling perception-driven tasks and ensuring reliable operation of the hardware platform in real-world conditions.
+
+\textbf{1. Incomplete Vision Hardware Integration.}  
+The current hardware setup lacks a depth camera, which prevents the system from fully integrating the perception pipeline that is already operational in simulation. 
+
+The future plan is to complete the procurement of a depth camera before the beginning of the second semester. Once acquired, the camera will be mounted, calibrated, and integrated with the existing ROS2 perception stack to enable consistent visual feedback in both simulated and real environments.
+
+\textbf{2. Network Constraints and Missing WiFi Support.}  
+The system currently relies on internet connectivity to perform API calls used by several components. However, the workstation used for the hardware setup is missing a functioning WiFi driver, preventing wireless access to the internet.
+
+In simulation, this issue was circumvented by using a LAN connection for internet access. In the hardware configuration, however, the LAN port must be reserved for Ethernet communication with the UR3e control box, making simultaneous robot control and internet access infeasible.
+
+To resolve this, the future plan is to install or troubleshoot the appropriate WiFi driver, restoring wireless connectivity. This will allow the system to maintain continuous access to required online services while ensuring a dedicated wired link for real-time robot communication.
+
+In summary, future work on the hardware system will focus on integrating a physical depth camera to enable real-world perception and resolving WiFi connectivity issues to support required API-dependent components. These improvements will ensure a more capable, flexible, and perception-enabled hardware platform for the next phase of the project.
+
+
+\newpage
 \bibliographystyle{IEEEtran}
 \bibliography{ref}
 
