@@ -261,6 +261,28 @@ For this project, we aim to contribute to this progress by addressing some of th
 
 \subsection{System Overview}
 
+The proposed system is an end-to-end robotic manipulation pipeline that integrates perception, planning, and execution within a unified ROS2-based framework. It enables the robot to transform high-level natural language instructions into executable actions.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/System_Architecture_Overview.png}
+    \caption{High-level system workflow illustrating the flow of visual and language inputs through the pipeline}
+    \label{fig:system_workflow}
+\end{figure}
+
+Figure~\ref{fig:system_workflow} presents the overall workflow of the system. The user provides instructions via natural language, which are processed through an Automatic Speech Recognition (ASR) pipeline. In parallel, the environment is perceived through a vision module performing scene understanding, object detection, segmentation, and grasp synthesis. Both modalities are fused into symbolic representations using large language models (LLMs), enabling task understanding and reasoning.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/ros2_graph_updated.png}
+    \caption{ROS2-based system architecture showing key nodes and their interactions}
+    \label{fig:project_ros2_architecture}
+\end{figure}
+
+As shown in Figure~\ref{fig:project_ros2_architecture}, the system follows a hierarchical planning architecture. The high-level planner decomposes user instructions into subtasks, the medium-level planner maps them to executable robot capabilities, and the low-level executor performs motion execution on the hardware. These components interact closely with perception and user interface nodes within the ROS2 ecosystem.
+
+A human-in-the-loop mechanism allows users to review and confirm generated plans before execution, while an emergency channel ensures immediate interruption of robot actions when required. This design results in a closed-loop system that supports intuitive interaction, reliable planning, and safe execution in dynamic environments.
+
 \subsection{Vision}
 Since the main focus of the current phase is integrating and moving the setup from simulation to actual hardware, we have encountered and addressed critical challenges in our vision and grasping pipelines. Initial hardware testing using GraspNet yielded excessively noisy 6-DOF poses for simple planar objects. Because our tasks primarily require top-down grasping along the $xy$-plane, we temporarily shifted to a deterministic Oriented Bounding Box (OBB) approach due to time constraints. 
 
