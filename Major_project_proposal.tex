@@ -580,7 +580,7 @@ The current progress is on schedule. Having transitioned from simulation to hard
 
 Progress is slightly behind the planned schedule, though not significantly impacting overall project completion. The text-to-speech implementation has been completed using the Tacotron2 model. However, the TTS module is not yet fully integrated into the ROS2 system architecture. The TTS feature itself is considered a "nice to have" enhancement for user interaction, and the current development focus remains on completing the hardware setup, stabilizing the perception pipeline, and integrating the core planning and execution modules. Effort is directed toward migrating the overall system from simulation to physical hardware, with TTS integration deferred to later phases if time permits.
 
-\subsubsection{Planning Process}
+\subsubsection{Planning Algorithm}
 The project is completed on time according to the schedule. All tasks listed in the Initial Timeline for the Planning Algorithm section have been completed: system integration with hardware, planning algorithm enhancement, testing and troubleshooting, and evaluation and benchmarking. In particular, the automatic PDDL generation pipeline was improved by introducing a structured intermediate representation (IR) instead of directly generating PDDL code, which reduced syntax errors, improved interpretability, and lowered token usage.
 
 With these milestones finished, the planning pipeline is now in a stable state, and future work can focus on refining the system further and benchmarking it across more diverse task scenarios to evaluate robustness and efficiency.
@@ -975,6 +975,8 @@ The roles and duties of this project revolve around the four main features. Each
 \newpage
 \section{Results}
 
+\subsection{Overall System}
+
 \subsection{Vision}
 
 Vision pipeline was evaluated in simulation using Gazebo across 5 distinct worlds, each containing 5 objects. The evaluation focused on object detection, classification, grasp pose estimation, and scene understanding, as well as the accuracy of pixel-to-real-world coordinate conversion. The testing procedure for each module is as follows:
@@ -1195,26 +1197,6 @@ In terms of efficiency, the LLM-based approach is the fastest and most lightweig
 Comparing the two symbolic approaches, IR-based generation consistently outperforms direct PDDL generation. It produces significantly fewer output tokens (51.23 vs. 411.46), indicating that the model avoids generating verbose formal syntax and instead focuses on structured semantic content. Despite this reduction, runtime remains comparable, suggesting that improvements are driven primarily by output quality rather than computational speed.
 
 Both structured approaches maintain high syntactic validity, with JSON at 97.1\% and PDDL at 93.5\%. This indicates that LLMs are generally capable of producing well-formed structured outputs. However, the higher planning success and symbolic accuracy of the IR-based approach suggest that explicitly separating semantic representation from syntactic realization leads to more reliable downstream planning.
-
-\subsection{Hardware}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\linewidth]{images/sim_vs_real.png}
-\caption{Comparison between Simulation (Gazebo) and Real Hardware Setup (UR3e with Robotiq HandE gripper at Chulapat 14 Robotics Lab)}
-\label{fig:hardware-result-sim-vs-real}
-\end{figure}
-
-The final hardware setup provides a fully functional physical execution environment that mirrors the structure and control interfaces used in simulation. The system is built around the \textbf{UR3e robot arm} equipped with a \textbf{Robotiq HandE} gripper, deployed at the Chulapat 14 Robotics Lab. The robot is integrated with the project’s software stack through the official \texttt{ur\_robot\_driver} ROS2 interface~\cite{ur_ros2_driver}, enabling direct execution of MoveIt2-generated trajectories on the real robot.
-
-At the communication level, the workstation is configured to run \textbf{Ubuntu 22.04 natively} to ensure stable, low-latency connectivity with the UR control box. A dedicated Ethernet connection is used, with the network interface assigned to the address \texttt{10.10.0.5} as required by the UR External Control URCap. Once connected, the robot is set to External Control mode using the teach pendant, allowing ROS2 to stream motion commands directly to the arm.
-
-The hardware execution pipeline maintains the same \textbf{action and service interfaces} used in simulation, enabling a consistent programming model across both environments. Through the \texttt{ur\_moveit\_config} package, MoveIt2 handles kinematic planning, trajectory generation, and trajectory execution on the physical robot without any modification to planning or control nodes. This uniformity allows the system to seamlessly transition between simulated and real execution, while ensuring reproducibility of motion behavior.
-
-To support this dual-environment operation, the main control node automatically configures key parameters, such as the MoveIt2 move group name and the \texttt{use\_sim\_time} setting, based on whether the robot is operating in Gazebo or on real hardware. This allows the same high-level plan to be executed identically in both environments, and initial verification has confirmed that planned trajectories generated in simulation transfer accurately to the real arm.
-
-Overall, the hardware system establishes a robust bridge between the simulated development workflow and the real robotic platform. It provides reliable, responsive control of the UR3e, preserves interface compatibility with the simulation pipeline, and enables the project to validate real-world robot behavior under the same architecture used for virtual testing.
-
 
 \newpage
 \section{Limitations and Future Work}
