@@ -1215,7 +1215,7 @@ Overall, the hardware system establishes a robust bridge between the simulated d
 
 
 \newpage
-\section{Limitations and Future Plans}
+\section{Limitations and Future Work}
 
 \subsection{Vision}
 
@@ -1235,27 +1235,11 @@ Despite the successful integration of the ASR module, several limitations remain
 
 For future development, the ASR system will be enhanced with a feedback mechanism that enables the robot to verbally confirm received commands and notify the user when tasks are completed. This interactive feedback loop aims to improve user awareness, communication transparency, and overall usability in real-world human–robot collaboration.
 \subsection{Planning}
-Despite the successful implementation and evaluation of the hierarchical planning system, several limitations remain that present opportunities for improvement in future development.
+Despite the successful implementation of the planning pipeline, several limitations remain. The most significant challenge lies in generating semantically correct and task-consistent PDDL problem files from natural language and perception outputs. In the current pipeline, the \texttt{domain.pddl} file is fixed and manually authored, while the \texttt{problem.pddl} file is produced through an IR-to-template conversion flow. This design largely prevents syntax failures, but errors can still occur at the semantic level, such as missing objects, incomplete initial predicates, or incorrect goal conditions.
 
-\textbf{1. Limitations of the PDDL-Based Approach.}
-The most significant challenge lies in generating syntactically correct and logically consistent PDDL (Planning Domain Definition Language) files. At present, both the \texttt{domain.pddl} and \texttt{problem.pddl} files are generated entirely by a large language model. While this enables flexibility in interpreting natural language commands, it also introduces errors such as inconsistent predicates, missing type declarations, and ill-formed syntax. These issues reduce the reliability of symbolic planning, as even minor syntax errors can cause plan generation to fail.
+The results also show that the intermediate representation is manually designed, which requires domain knowledge to define an appropriate schema. Although the structured JSON format improves reliability and symbolic accuracy, it is still tailored to the current task family and does not yet capture the diversity of more complex planning settings. In addition, the evaluation in this project is limited to the Blocksworld domain, which remains relatively constrained.
 
-To address this, the future plan involves reducing the portion of the PDDL specification that depends on the LLM. The set of valid actions and predicates will be manually defined and validated, ensuring correctness and interpretability. Dynamic elements, such as the current state of the robot and environment, will instead be generated deterministically from live ROS2 topics and service responses. This hybrid approach aims to retain the flexibility of LLM-based interpretation while ensuring structural and syntactic integrity in the resulting PDDL files.
-
-\textbf{2. Limited Integration with Perception.}
-The current system architecture includes a dedicated \texttt{vision} node capable of providing object detection, classification, and pose estimation services. However, full integration between this perception module and the planning system has not yet been achieved. As a result, the system has primarily been evaluated on motion- and manipulation-centric tasks that do not depend on visual context.
-
-The next phase of development will focus on completing this integration, allowing the planners to reason over perceptual information and adapt plans dynamically based on the visual state of the environment. This will enable testing and evaluation on more complex, perception-dependent instructions—such as identifying, approaching, and manipulating specific objects—which more closely resemble real-world autonomous task execution scenarios.
-
-\textbf{3. Testing with Higher-Level and Abstract Commands.}
-Although preliminary experiments with abstract language commands have been conducted, broader testing is still required to evaluate robustness and adaptability. Future work will involve systematically benchmarking both the LLM-Direct and PDDL-Based approaches on abstract, multi-step, and perception-based instructions to identify the limits of current reasoning capabilities and improve high-level plan generalization.
-
-\textbf{4. Fail-Safe Mechanism.}
-Currently, the system implements an emergency stop mechanism via a predefined keyword. When the emergency stop word is detected, the robot halts all actions and remains locked in its current position until an “okay” word is received. While this prevents immediate harm, it is not fail-safe: the robot may be stopped in potentially unsafe locations, such as near obstacles or in awkward arm configurations.
-
-The planned improvement is to implement a proper fail-safe routine. In the event of an emergency stop, the robot will autonomously move to a predefined safe position (e.g., the home position) before halting, ensuring that the system is in a known, secure state. This enhancement will increase overall safety and reliability, particularly in dynamic or unstructured environments.
-
-In summary, future work will prioritize enhancing the determinism and correctness of the symbolic planning pipeline, completing the integration of the vision system, extending task complexity in experimental evaluations, and implementing robust fail-safe procedures to improve operational safety.
+Future work should therefore expand beyond Blocksworld to richer manipulation domains with larger predicate sets, partial observability, and longer-horizon tasks. A particularly useful direction is to compare alternative intermediate representations and output formats, including TOON, Markdown, XML, and related structured encodings, to measure their relative efficiency in token usage and output accuracy. Beyond representation choice, future studies should investigate output evaluation and feedback loops, stronger prompt engineering, and multi-agent approaches to improve robustness, controllability, and downstream planning quality.
 
 \subsection{Simulation}
 
