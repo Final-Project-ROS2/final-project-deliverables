@@ -369,6 +369,31 @@ At the \textbf{low level}, the planner executes motion commands using constraine
 
 Overall, this hierarchical and hybrid planning framework enables reliable transformation of natural language instructions into executable robot behavior, while maintaining flexibility, safety, and modularity.
 
+\subsection{Simulation}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/gazebo_setup.png}
+\caption{UR5 with Robotiq 2F-85 gripper and depth camera in Gazebo simulation environment}
+\label{fig:simulation-gazebo-setup}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/ros2_sim_graph_full.png}
+\caption{ROS2 graph for the Gazebo simulation environment}
+\label{fig:simulation-ros2-graph}
+\end{figure}
+
+The simulation environment is implemented in Gazebo Classic and provides a complete, fully integrated setup for testing perception, motion planning, and gripper control. The system models the UR5 robotic arm equipped with a Robotiq 2F-85 gripper and a downward-facing depth camera, together with a table environment and a collection of engineering objects. All components are interfaced through ROS2, enabling real-time communication and execution of motion and perception tasks within a unified simulation framework.
+
+At the \textbf{robot and sensor level}, the UR5, gripper, and camera are simulated using standard Gazebo ROS2 interfaces. The robot exposes joint states, controllers, and transforms exactly as in a physical setup, while the RGB-D camera publishes depth and color images that integrate directly with the perception pipeline. Using \texttt{cv\_bridge}~\cite{cv_bridge}, raw Gazebo image messages are converted into OpenCV-compatible formats, allowing the vision node to operate identically to its real-world counterpart.
+
+The simulation world includes several engineered parts used for testing perception-driven tasks. While some models contain simplified collision meshes, making precise grasping less reliable, the environment is sufficient for validating perception, planning, and trajectory execution. In line with guidance from our advisor, detailed grasp evaluation will be carried out on the real hardware, while Gazebo is used primarily for motion, planning, and system integration testing.
+
+Overall, the Gazebo Classic simulation delivers a robust and realistic platform for evaluating the majority of our robotic pipeline. The ROS2 graph in Figure~\ref{fig:simulation-ros2-graph} highlights the modular structure that supports coordinated operation of all simulated components.
+
+
 \subsection{Hardware}
 
 During system testing, we encountered an issue with the official UR ROS2 driver used to control the UR3e arm. After investigating the problem, we found that it corresponds to an open bug in the driver that affects the reliability of motion execution~\cite{ur-driver-issue}. Because the issue remains unresolved and the timeline for a fix is uncertain, relying solely on the driver poses a potential risk to the stability of the system.
@@ -1169,30 +1194,6 @@ In terms of efficiency, the LLM-based approach is the fastest and most lightweig
 Comparing the two symbolic approaches, IR-based generation consistently outperforms direct PDDL generation. It produces significantly fewer output tokens (51.23 vs. 411.46), indicating that the model avoids generating verbose formal syntax and instead focuses on structured semantic content. Despite this reduction, runtime remains comparable, suggesting that improvements are driven primarily by output quality rather than computational speed.
 
 Both structured approaches maintain high syntactic validity, with JSON at 97.1\% and PDDL at 93.5\%. This indicates that LLMs are generally capable of producing well-formed structured outputs. However, the higher planning success and symbolic accuracy of the IR-based approach suggest that explicitly separating semantic representation from syntactic realization leads to more reliable downstream planning.
-
-\subsection{Simulation}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\linewidth]{images/gazebo_setup.png}
-\caption{UR5 with Robotiq 2F-85 gripper and depth camera in Gazebo simulation environment}
-\label{fig:simulation-gazebo-setup}
-\end{figure}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\linewidth]{images/ros2_sim_graph_full.png}
-\caption{ROS2 graph for the Gazebo simulation environment}
-\label{fig:simulation-ros2-graph}
-\end{figure}
-
-The simulation environment is implemented in Gazebo Classic and provides a complete, fully integrated setup for testing perception, motion planning, and gripper control. The system models the UR5 robotic arm equipped with a Robotiq 2F-85 gripper and a downward-facing depth camera, together with a table environment and a collection of engineering objects. All components are interfaced through ROS2, enabling real-time communication and execution of motion and perception tasks within a unified simulation framework.
-
-At the \textbf{robot and sensor level}, the UR5, gripper, and camera are simulated using standard Gazebo ROS2 interfaces. The robot exposes joint states, controllers, and transforms exactly as in a physical setup, while the RGB-D camera publishes depth and color images that integrate directly with the perception pipeline. Using \texttt{cv\_bridge}~\cite{cv_bridge}, raw Gazebo image messages are converted into OpenCV-compatible formats, allowing the vision node to operate identically to its real-world counterpart.
-
-The simulation world includes several engineered parts used for testing perception-driven tasks. While some models contain simplified collision meshes, making precise grasping less reliable, the environment is sufficient for validating perception, planning, and trajectory execution. In line with guidance from our advisor, detailed grasp evaluation will be carried out on the real hardware, while Gazebo is used primarily for motion, planning, and system integration testing.
-
-Overall, the Gazebo Classic simulation delivers a robust and realistic platform for evaluating the majority of our robotic pipeline. The ROS2 graph in Figure~\ref{fig:simulation-ros2-graph} highlights the modular structure that supports coordinated operation of all simulated components.
 
 \subsection{Hardware}
 
