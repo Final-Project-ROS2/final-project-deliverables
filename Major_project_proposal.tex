@@ -12,6 +12,7 @@
 \usepackage{booktabs}
 \usepackage{makecell}
 \usepackage{amsmath}
+\usepackage{float}
 \graphicspath{{images/}}
 
 \colorlet{punct}{red!60!black}
@@ -1141,7 +1142,7 @@ F_{pd1}=\frac{2PR}{P+R}
 \]
 where precision $P$ measures the correctness of generated symbols and recall $R$ measures coverage of ground-truth symbols~\cite{planowl}.
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \small
 \caption{Planning success on BIRD (155 sampled scenarios).}
@@ -1157,7 +1158,7 @@ LLM & \textbf{\textcolor{red}{39.4}} & N/A \\
 \end{tabular}
 \end{table}
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \small
 \caption{Efficiency comparison on BIRD (155 sampled scenarios).}
@@ -1173,7 +1174,7 @@ LLM & 646.96 & \textbf{\textcolor{green}{31.12}} & \textbf{\textcolor{green}{44.
 \end{tabular}
 \end{table}
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \caption{Symbolic accuracy comparison using $F_{pd1}$.}
 \label{tab:planning-f1-results}
