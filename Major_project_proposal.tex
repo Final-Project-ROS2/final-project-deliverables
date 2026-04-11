@@ -1138,6 +1138,15 @@ Planning performance was evaluated on Blocksworld tasks using the Blocksworld Im
 
 All three approaches were evaluated under the same experimental setup to ensure a fair comparison. The language model used for generation in all settings is \texttt{gpt-oss:20b}, and the vision-language model used for image-to-text conversion is \texttt{qwen3-vl:8b}. Both models are deployed locally using Ollama. For the JSON and PDDL settings, the generated problem is solved using Fast Downward with a fixed domain file~\cite{the-fast-downward-planning-system}.
 
+Figure~\ref{fig:planning-benchmark-flow} shows the benchmarking flow used to compare the three planning settings: direct LLM generation, direct PDDL generation, and IR-based generation.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/pddl_generation_benchmark.png}
+    \caption{Benchmarking flow for planning approaches: LLM-direct, direct PDDL generation, and IR-based generation.}
+    \label{fig:planning-benchmark-flow}
+\end{figure}
+
 We evaluate three main aspects of planning performance. \textit{Planning Success Rate} measures whether the generated representation leads to a valid plan that achieves the goal. \textit{Syntactic Validity} indicates whether the generated PDDL can be successfully parsed by the planner. \textit{Efficiency} is measured through token usage and runtime, where token counts approximate generation cost and elapsed time captures end-to-end latency. For symbolic approaches, we additionally evaluate \textit{Symbolic Accuracy} using precision, recall, and the balanced F-score $F_{pd1}$:
 \[
 F_{pd1}=\frac{2PR}{P+R}
