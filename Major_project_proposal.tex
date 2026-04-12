@@ -1052,7 +1052,23 @@ The six scenarios were designed to cover distinct system capabilities:
 \end{tabular}
 \end{table}
 
-Tables~\ref{tab:overall-planning-time}--\ref{tab:overall-success-rate} summarize system performance across planning time, execution time, and success rate, respectively.
+\begin{table}[h]
+\centering
+\small
+\caption{Combined averages from planning time, execution time, and success rate (green = best, red = worst).}
+\label{tab:overall-combined-averages}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Metric} & \textbf{LLM-Direct} & \textbf{PDDL-Direct} & \textbf{IR-Based PDDL} & \textbf{Manual} \\
+\midrule
+Planning Time (s) & \textcolor{green!50!black}{\textbf{6.460}} & \textcolor{red!70!black}{\textbf{7.710}} & 6.950 & N/A \\
+Execution Time (s) & 55.430 & \textcolor{red!70!black}{\textbf{56.000}} & 55.240 & \textcolor{green!50!black}{\textbf{1.860}} \\
+Success Rate (\%) & 80 & \textcolor{red!70!black}{\textbf{70}} & \textcolor{green!50!black}{\textbf{100}} & \textcolor{green!50!black}{\textbf{100}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Tables~\ref{tab:overall-planning-time}--\ref{tab:overall-success-rate} summarize system performance across planning time, execution time, and success rate, respectively. Table~\ref{tab:overall-combined-averages} consolidates the average values from these three tables for quick comparison.
 
 The results indicate that \textbf{IR-Based PDDL} is the most reliable automated approach, achieving a perfect success rate (100\%) across all scenarios. In contrast, LLM-Direct and PDDL-Direct are less consistent, with average success rates of 80\% and 70\%, respectively. Both approaches degrade substantially in Scenario 6, where each achieves only 40\% success, suggesting that the structured intermediate representation improves robustness in more constrained or failure-prone cases.
 
