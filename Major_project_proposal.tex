@@ -313,8 +313,46 @@ The new service returns the top-$k$ bounding boxes ranked by similarity score, w
 
 \subsection{Speech}
 
-Progress on the speech module has remained steady but with meaningful advancement in bidirectional interaction capabilities. We have completed development of a text-to-speech (TTS) pipeline to support richer user feedback. The TTS system is implemented using the open-source \texttt{TTS library}~\cite{coqui-tts}, specifically leveraging the \texttt{tts\_models/en/ljspeech/tacotron2-DDC} model for speech synthesis. The implementation accepts text input, synthesizes speech using the pre-trained Tacotron2 model with DDC (Differential Duration Control), and outputs audio to a file. However, the current implementation is not yet integrated into the ROS2 ecosystem and has a key limitation: it generates audio files that must be played separately rather than streaming audio directly or playing it in real-time. Because the core speech recognition functionality reached high accuracy and low latency during semester 1 testing, and given that TTS remains a secondary feature enhancement, the team is prioritizing the broader transition from simulation to hardware and core perception-planning integration over full TTS integration for now.
+The speech module enables natural language interaction between the user and the robotic system through a real-time Automatic Speech Recognition (ASR) pipeline. Its primary function is to convert spoken commands into structured textual instructions that can be consumed by the planning subsystem within the ROS2 architecture.
 
+As illustrated in Figure~\ref{fig:speech-pipeline}, the module follows a sequential processing pipeline consisting of audio capture, speech-to-text transcription, and command validation.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/speech_pipeline.png}
+    \caption{Speech processing pipeline from audio input to planning and emergency control}
+    \label{fig:speech-pipeline}
+\end{figure}
+
+\paragraph{Audio Capture}
+A microphone device continuously captures user speech input. The audio stream is processed in real time and forwarded to the ASR engine. The system is designed to operate in an event-driven manner, allowing immediate processing once speech is detected.
+
+\paragraph{Speech-to-Text Processing}
+The captured audio is transcribed into text using the AssemblyAI ASR service. The transcription process converts raw audio signals into natural language text with low latency, enabling near real-time interaction. The resulting text output is then published to a dedicated ROS2 topic, allowing other modules, particularly the planning node, to subscribe and process incoming commands.
+
+\paragraph{Command Validation and Gating}
+To ensure safe and intentional execution, a keyword-based gating mechanism is implemented. A command is only forwarded to the planning module if it contains the predefined activation keyword \texttt{``EXECUTE''}. This prevents incomplete or unintended speech from triggering robot actions.
+
+Formally, let $S$ denote the transcribed sentence. The command is considered valid if:
+\[
+\text{Valid}(S) =
+\begin{cases}
+1, & \text{if } \texttt{``EXECUTE''} \in S \\
+0, & \text{otherwise}
+\end{cases}
+\]
+
+Only when $\text{Valid}(S) = 1$ will the command be published to the planning node.
+
+\paragraph{Emergency Stop Mechanism}
+In addition to command execution, the module incorporates a safety-critical interrupt mechanism. When the keyword \texttt{``STOP''} is detected, an emergency signal is immediately published to a dedicated ROS2 topic. This topic is continuously monitored by the low-level controller, which halts all robot motion upon receiving the signal.
+
+The system remains in a halted state until the recovery keyword \texttt{``OKAY''} is detected, at which point normal operation resumes.
+
+\paragraph{System Integration}
+The speech module interfaces directly with the ROS2 ecosystem through topic-based communication. Transcribed commands are published to the planning node, while emergency signals are sent to the motion controller. This modular design ensures clear separation between perception, decision-making, and execution layers.
+
+Overall, the speech subsystem provides a reliable and structured interface for human–robot interaction, enabling safe command execution while maintaining responsiveness and modularity for future extensions.
 \subsection{Planning}
 
 Our recent work in planning focuses on improving the robustness and efficiency of the automatic PDDL generation pipeline used by the high-level planner. Initially, the system relied on a large language model (LLM) to directly generate both the PDDL \texttt{domain} and \texttt{problem} files from a natural language instruction. While this approach demonstrated the feasibility of natural language to PDDL translation, it introduced several practical challenges.
@@ -398,87 +436,70 @@ Overall, this approach increases reliability, efficiency, and system control whi
 
 \subsection{Hardware}
 
-During system testing, we encountered an issue with the official UR ROS2 driver used to control the UR3e arm. After investigating the problem, we found that it corresponds to an open bug in the driver that affects the reliability of motion execution~\cite{ur-driver-issue}. Because the issue remains unresolved and the timeline for a fix is uncertain, relying solely on the driver poses a potential risk to the stability of the system.
+The hardware subsystem is centered around a UR7 collaborative robotic manipulator equipped with a parallel gripper and an external depth camera. The system is designed to provide a stable and consistent physical platform that mirrors the interfaces and abstractions used in simulation, enabling seamless deployment of planning and perception pipelines.
 
-To mitigate this risk, we implemented a backup control mechanism by developing an alternative implementation of the \texttt{low\_level\_planner\_executor} node that communicates with the robot using \textit{URScript}. URScript is the native scripting language of Universal Robots controllers, designed to directly command robot motion, gripper actions, and I/O operations through programmatic instructions executed by the robot controller~\cite{urscript-docs}.
+The UR7 robot provides six degrees of freedom, allowing flexible manipulation within a typical tabletop workspace. It is interfaced with a workstation via a dedicated Ethernet connection, enabling real-time communication with the robot controller through the \texttt{ur\_robot\_driver}. Motion execution is handled using MoveIt2, which performs inverse kinematics, trajectory generation, and collision-aware planning before streaming commands to the robot.
 
-Rather than relying on the ROS2 driver abstraction layer, this node sends URScript commands directly to the robot’s \textit{URControl} interface via TCP/IP socket communication. This approach follows the standard external control mechanism supported by Universal Robots and enables motion commands to be executed without the ROS2 driver middleware. The method is also consistent with techniques introduced in earlier coursework, where URScript programs are transmitted over a socket connection to the robot controller.
+From a kinematic perspective, the pose of the robot end-effector is represented using a homogeneous transformation matrix:
 
-To maintain compatibility with the existing ROS2-side API, frame and orientation conversions were explicitly implemented within the \\\texttt{low\_level\_planner\_executor} node. This ensures that the same high-level Cartesian commands generated by the planner can still be executed correctly in the robot’s coordinate system, without requiring modifications to the ROS2 action interface or high-level planning components.
+\begin{equation}
+T_{ee} =
+\begin{bmatrix}
+R & p \\
+0 & 1
+\end{bmatrix}
+\end{equation}
 
-Let the ROS2-side Cartesian position be
-\[
-\mathbf{p}_R=\begin{bmatrix}x_R\\y_R\\z_R\end{bmatrix},
-\]
-and the URScript-side position be \(\mathbf{p}_U\).  
-The ROS2 and UR frames are related by
-\[
-\mathbf{p}_U = \mathbf{T}\mathbf{p}_R,\qquad
-\mathbf{T}=\mathrm{diag}(-1,-1,1)=\mathbf{R}_z(\pi).
-\]
-Hence
-\[
-(x_U,y_U,z_U)=(-x_R,-y_R,z_R).
-\]
+\noindent
+where $R$ is a $3 \times 3$ rotation matrix representing orientation, and $p = [x \; y \; z]^T$ is the position vector of the end-effector. This representation is used consistently across perception, planning, and control modules.
 
-For orientation, ROS2 uses quaternions
-\[
-\mathbf{q}=(q_x,q_y,q_z,q_w),\qquad \|\mathbf{q}\|=1,
-\]
-while URScript uses rotation vector \(\mathbf{r}=(r_x,r_y,r_z)\), with
-\[
-\theta=\|\mathbf{r}\|,\quad \hat{\mathbf{u}}=\frac{\mathbf{r}}{\theta},\quad
-\mathbf{q}=\left(\hat{\mathbf{u}}\sin\frac{\theta}{2},\cos\frac{\theta}{2}\right).
-\]
-Conversely, for quaternion-to-rotation-vector conversion:
-\[
-\theta=2\arccos(q_w),\quad
-\mathbf{r}=
-\begin{cases}
-2(q_x,q_y,q_z), & \sqrt{1-q_w^2}<\varepsilon,\\[4pt]
-\theta\frac{(q_x,q_y,q_z)}{\sqrt{1-q_w^2}}, & \text{otherwise}.
-\end{cases}
-\]
+To ensure safe and stable motion, constraints are applied in both joint space and Cartesian space. Joint velocities are bounded as:
 
-Frame conversion for absolute pose orientation is implemented via quaternion composition with a \(180^\circ\) rotation about \(z\):
-\[
-\mathbf{q}_T=(0,0,1,0),\qquad
-\mathbf{q}_U=\mathbf{q}_T\otimes \mathbf{q}_R,
-\]
-where \(\otimes\) denotes quaternion multiplication. Since \(\mathbf{q}_T^{-1}=\mathbf{q}_T\), the same transform maps in both directions (self-inverse frame map).
+\begin{equation}
+|\dot{q}_i| \leq \dot{q}_{\max}, \quad \forall i \in \{1,\dots,6\}
+\end{equation}
 
-For relative Cartesian commands \((\Delta x,\Delta y,\Delta z,\Delta\phi,\Delta\theta,\Delta\psi)\), the implemented mapping is
-\[
-(\Delta x_U,\Delta y_U,\Delta z_U)=(-\Delta x_R,-\Delta y_R,\Delta z_R),
-\]
-\[
-(\Delta\phi_U,\Delta\theta_U,\Delta\psi_U)=(\Delta\phi_R,\Delta\theta_R,-\Delta\psi_R),
-\]
-then composed as
-\[
-\mathbf{q}_{k+1}=\mathrm{normalize}\!\left(\mathbf{q}_k\otimes
-\mathbf{q}_{\Delta}(\Delta\phi_U,\Delta\theta_U,\Delta\psi_U)\right).
-\]
+\noindent
+while the Cartesian velocity of the end-effector is limited by:
 
-This mathematical treatment ensures that direct URScript execution is kinematically consistent with the original ROS2-side API while removing dependence on the ROS2 driver middleware for runtime motion execution.
+\begin{equation}
+\|v_{ee}\| \leq v_{\max}
+\end{equation}
 
-\vspace{0.5cm}
+\noindent
+These constraints ensure smooth and predictable robot motion during execution.
 
-In addition to the control system modifications, several hardware improvements were implemented to enhance system robustness and repeatability.
+The external depth camera is rigidly mounted relative to the robot base frame. The transformation between the camera frame and the robot base frame is defined as:
 
-First, the camera mounting setup was mechanically integrated with the base of the UR3e manipulator. The camera stand was rigidly fixed and secured in place to eliminate any relative movement between the camera and the robot base. By establishing a fixed and repeatable spatial relationship, this design removes the need for repeated extrinsic calibration before each operation. As a result, the transformation between the camera frame and the robot base frame remains constant across sessions, improving both system reliability and deployment efficiency.
+\begin{equation}
+T_{base}^{cam}
+\end{equation}
 
-Furthermore, a custom cable management solution was developed using additive manufacturing. A 3D-printed component was designed and fabricated to securely hold and guide the robot and camera cables along the structure. This component minimizes cable movement during operation, reducing the risk of entanglement, signal interruption, or mechanical interference with the robot’s motion. As shown in Fig.~\ref{fig:camera_mount}
+\noindent
+which is obtained through calibration and used for coordinate transformation. Given a pixel coordinate $(u, v)$ and an associated depth value $d$, the corresponding 3D point in the camera frame is computed as:
 
-The integration of these hardware modifications contributes to a more stable and user-friendly system, ensuring consistent sensing and execution performance while reducing setup time and operational errors.
+\begin{equation}
+p_{cam} = d \cdot K^{-1}
+\begin{bmatrix}
+u \\ v \\ 1
+\end{bmatrix}
+\end{equation}
 
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.6\linewidth]{images/cable mount.png}
-    \caption{Custom cable mount integrated with the camera stand to secure and organize cables during operation.}
-    \label{fig:camera_mount}
-\end{figure}
+\noindent
+where $K$ is the camera intrinsic matrix. The point is then transformed into the robot base frame:
 
+\begin{equation}
+p_{base} = T_{base}^{cam} \cdot p_{cam}
+\end{equation}
+
+\noindent
+This formulation enables consistent integration between perception outputs and motion planning inputs.
+
+To improve perception reliability, a uniform acrylic plate is placed within the camera’s field of view to act as a controlled visual background. This reduces the impact of environmental noise and improves the robustness of object detection and segmentation.
+
+In addition, structured cable management is implemented using a custom mounting solution to secure wiring and prevent interference with the robot’s motion. These design considerations improve system stability and ensure safe operation within the robot workspace.
+
+The hardware architecture is designed to maintain full compatibility with the simulation environment, ensuring that motion plans, coordinate frames, and control interfaces remain consistent across both domains. This allows high-level plans developed and validated in simulation to be deployed directly onto the physical robot without modification.
 \newpage
 \section{Project Planning}
 The project is structured around four primary technical area of concentration exluding any relevant paperwork tasks. These align seamlessly with the core enhancements, which will all be implemented in parallel: \textbf{image processing, speech processing, planning algorithms, and robotic arm integration}. The planned timeline is structured into weekly milestones to ensure iterative progress and early validation
@@ -589,10 +610,15 @@ Future work will focus on further refining the system and benchmarking the plann
 
 \subsubsection{Interface with Robot Arm}
 
-Progress is largely on schedule. The depth camera has been securely mounted at the base of the UR arm and is fully operational. Its spatial position relative to the UR base has been measured, and a consistent coordinate reference frame has been established to support camera-to-robot transformation. To further improve repeatability, the camera stand has been rigidly fixed to the robot base, eliminating relative displacement and removing the need for repeated calibration across sessions. The experimental workspace has also been prepared using a controlled visual background to improve perception reliability.
+Progress on the hardware subsystem is on schedule, with all major integration tasks completed. The UR7 robotic manipulator has been successfully deployed and interfaced with the workstation, and stable communication through the control pipeline has been established.
 
-Mechanical integration has been further refined through the implementation of a structured cable management solution. A custom 3D-printed cable mount has been designed and installed on the camera stand to secure and guide the cabling. This prevents unwanted cable movement and ensures that wiring does not interfere with the UR arm’s range of motion. These improvements enhance system robustness, operational safety, and overall deployment efficiency.
+The depth camera has been mounted at the base of the robot and rigidly fixed to maintain a consistent spatial relationship with the robot frame. A fixed transformation between the camera and robot base has been defined, enabling reliable perception-to-action mapping without requiring repeated calibration across sessions.
 
+The experimental workspace has been prepared with a controlled visual setup. An acrylic plate has been installed within the camera’s field of view to provide a uniform background, improving perception consistency during operation.
+
+Mechanical integration has also been finalized. A structured cable management solution has been implemented using a custom mounting design to secure and guide wiring, ensuring that cables do not interfere with the robot’s motion. The camera mounting system has been reinforced to minimize vibration during operation, improving overall system stability.
+
+With these components in place, the hardware platform is now in a stable and operational state, supporting reliable execution of perception and planning tasks. Future work will focus on further improving mechanical robustness and evaluating system performance under more dynamic real-world conditions.
 \newpage
 \section{Theory and Technical Backup}
 
@@ -1064,11 +1090,7 @@ Our Pixel-to-Real service achieves an RMSE of \textbf{0.05365\,m}, demonstrating
 
 \subsection{Speech}
 
-The ASR system has been fully integrated as a ROS2 node, providing real-time speech-to-text functionality, deactivation word recognition, and an emergency stop mechanism. The node continuously captures live audio streams, transcribes commands in real time, and publishes recognized sentences to the planning node only if the sentence ends with the deactivation word ``execute.'' The emergency stop allows immediate halting of robot motion with the command ``STOP'' and can be deactivated using the word ``OKAY.'' This workflow ensures responsive, safe, and controlled interaction between the human operator and the robot.
-
-\subsubsection{Experimentation and Evaluation}
-
-The ASR system was evaluated using a set of 30 task commands of varying complexity. Three participants (Kanisorn, Methasit, and Withawin) each performed all tasks. System performance was measured in terms of successful recognition and correct transmission of the command to the planning node.
+The ASR system was evaluated using a set of 30 task commands of varying complexity. Three participants (Kanisorn, Methasit, and Withawin), all of whom are expert users familiar with the system and command structure, each performed all tasks. System performance was measured in terms of successful recognition and correct transmission of the command to the planning node.
 
 \begin{table}[H]
 \centering
@@ -1253,9 +1275,12 @@ Finally, while pixel-to-real conversion provides reasonable accuracy in controll
 For future development, these limitations could be addressed by incorporating multi-view or higher-resolution sensors, improving depth filtering and denoising, extending GraspNet and scene understanding models to handle irregular objects, and integrating temporal smoothing or tracking to enhance robustness in dynamic real-world scenarios. These improvements aim to increase perception reliability, grasp success, and overall system usability in complex and unstructured environments.
 
 \subsection{Speech}
-Despite the successful integration of the ASR module, several limitations remain. Currently, the system supports only one deactivation word ``EXECUTE'' which must appear at the end of a spoken command for it to be sent to the planning node. Commands without this keyword are ignored, which can reduce flexibility in natural speech interactions. Similarly, the emergency stop feature currently recognizes only the word ``STOP'' to immediately halt robot operations, and can only be deactivated by saying ``OKAY.'' While these constraints ensure reliability and safety, they also limit the diversity of voice inputs the system can handle.
 
-For future development, the ASR system will be enhanced with a feedback mechanism that enables the robot to verbally confirm received commands and notify the user when tasks are completed. This interactive feedback loop aims to improve user awareness, communication transparency, and overall usability in real-world human–robot collaboration.
+Despite the successful integration of the ASR module, several limitations remain. Currently, the system supports only one deactivation keyword, ``EXECUTE,'' which must appear at the end of a spoken command for it to be transmitted to the planning node. Commands that do not include this keyword are ignored, which reduces flexibility and limits the naturalness of user interaction. Similarly, the emergency stop mechanism recognizes only the keyword ``STOP'' to immediately halt robot operation, and can only be reset using the word ``OKAY.'' While these constraints improve reliability and ensure safe operation, they restrict the diversity of acceptable voice inputs.
+
+In addition, the current evaluation of the ASR system was conducted using expert users who are familiar with the command structure and system behavior. This introduces a bias in the reported performance, as real-world users may exhibit greater variability in speech patterns, phrasing, and pronunciation. As a result, the measured accuracy may overestimate the system's performance in more general deployment scenarios.
+
+For future development, the ASR system will be extended to support more flexible and natural language interaction, including multiple activation and termination phrases. A feedback mechanism will also be introduced, enabling the robot to verbally confirm received commands and notify users upon task completion. This interactive feedback loop is expected to improve user awareness, communication transparency, and overall usability in real-world human--robot collaboration.
 \subsection{Planning}
 Despite the successful implementation and evaluation of the hierarchical planning system, several limitations remain that present opportunities for improvement in future development.
 
@@ -1292,21 +1317,11 @@ Looking forward, simulation will continue to play a key role in verifying path p
 
 \subsection{Hardware}
 
-Despite the successful establishment of a stable and reproducible hardware execution environment, several limitations remain that currently constrain the full capabilities of the system. Addressing these limitations is essential for enabling perception-driven tasks and ensuring reliable operation of the hardware platform in real-world conditions.
+Despite establishing a stable and reproducible hardware execution environment, several limitations still exist. In particular, motion from the UR7e introduces vibrations in the camera mount, which can reduce the consistency of visual pose estimation during operation. These vibrations affect repeatability and may introduce minor calibration drift over time.
 
-\textbf{1. Incomplete Vision Hardware Integration.}  
-The current hardware setup lacks a depth camera, which prevents the system from fully integrating the perception pipeline that is already operational in simulation. 
+Additionally, the acrylic plate positioned on the robot base is used as a controlled visual background within the camera's field of view. However, its current implementation does not fully eliminate background noise under all lighting conditions, which can impact perception robustness. Variations in illumination and reflections on the acrylic surface may still introduce inconsistencies in object detection and segmentation.
 
-The future plan is to complete the procurement of a depth camera before the beginning of the second semester. Once acquired, the camera will be mounted, calibrated, and integrated with the existing ROS2 perception stack to enable consistent visual feedback in both simulated and real environments.
-
-\textbf{2. Network Constraints and Missing WiFi Support.}  
-The system currently relies on internet connectivity to perform API calls used by several components. However, the workstation used for the hardware setup is missing a functioning WiFi driver, preventing wireless access to the internet.
-
-In simulation, this issue was circumvented by using a LAN connection for internet access. In the hardware configuration, however, the LAN port must be reserved for Ethernet communication with the UR3e control box, making simultaneous robot control and internet access infeasible.
-
-To resolve this, the future plan is to install or troubleshoot the appropriate WiFi driver, restoring wireless connectivity. This will allow the system to maintain continuous access to required online services while ensuring a dedicated wired link for real-time robot communication.
-
-In summary, future work on the hardware system will focus on integrating a physical depth camera to enable real-world perception and resolving WiFi connectivity issues to support required API-dependent components. These improvements will ensure a more capable, flexible, and perception-enabled hardware platform for the next phase of the project.
+These limitations highlight the need for improved mechanical stability and more controlled visual conditions to ensure reliable real-world, perception-driven performance.
 
 \newpage
 \bibliographystyle{IEEEtran}
