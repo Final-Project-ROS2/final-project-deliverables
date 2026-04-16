@@ -262,54 +262,94 @@ For this project, we aim to contribute to this progress by addressing some of th
 \subsection{System Overview}
 
 \subsection{Vision}
-Since the main focus of the current phase is integrating and moving the setup from simulation to actual hardware, we have encountered and addressed critical challenges in our vision and grasping pipelines. Initial hardware testing using GraspNet yielded excessively noisy 6-DOF poses for simple planar objects. Because our tasks primarily require top-down grasping along the $xy$-plane, we temporarily shifted to a deterministic Oriented Bounding Box (OBB) approach due to time constraints. 
 
-We implemented a ROS2 node with two primary services \\(\texttt{/obb/find\_object\_angle\_bb} and \texttt{/obb/find\_object\_angle}) to extract the object centroid ($u,v$) and rotation angle ($\theta$) from an Axis-Aligned Bounding Box (AABB). This guarantees reliable parallel-jaw gripper alignment for current milestones, with plans to revisit GraspNet for complex multi-DOF grasping once the hardware baseline is completely stable.
+The vision system is responsible for providing the robot arm with the spatial and semantic understanding required to locate, identify, and orient objects in the workspace. This section describes the design and implementation of each component in the vision pipeline: grasp pose estimation, pixel-to-real-world coordinate mapping, scene understanding via a Vision-Language Model, and open-vocabulary object detection.
 
-However, the reliability of this OBB-based planar grasping strategy is fundamentally bottlenecked by the accuracy of the system's spatial mapping. Therefore, a critical component concurrently under review is the \texttt{pixel\_to\_real\_world} coordinate mapping module. 
+\subsubsection{Grasp Pose Estimation}
 
-Initial baseline evaluations of this module revealed significant spatial deviations when altering the operational height of the UR ARM camera. We identified that relying exclusively on an extrinsic matrix derived from a single camera point---without comprehensive spatial calibration---violates geometric best practices. When only a localized camera coordinate is provided, the transformation assumes an ideal parallel plane, failing to account for physical mounting misalignments or depth-dependent lens distortions. To understand the root cause, we evaluated baseline discrepancies across two base heights ($H_b$). At an $H_b$ of $54.41\text{ cm}$, the total distance RMSE was $4.170\text{ cm}$, whereas at an $H_b$ of $67.11\text{ cm}$, it dropped to $1.244\text{ cm}$. Because the mapping error increases substantially when the height is reduced without corresponding dynamic recalibration, we hypothesized that the root cause of the original coordinate displacement is systematic (calibration-based) rather than a multi-resolution or quantization issue.
-Informed by these initial findings, we have improved our calibration approach by benchmarking two distinct mathematical models to rigorously isolate systematic versus quantization errors. Previously, we used a static intrinsic projection matrix based on the standard Pinhole Camera Model, which maps a 3D point $\mathbf{P} = [X, Y, Z]^T$ to a 2D pixel coordinate $\mathbf{p} = [u, v]^T$ using the camera intrinsic matrix $\mathbf{K}$ and extrinsic parameters $[\mathbf{R} | \mathbf{t}]$:
+The initial hardware deployment evaluated \textbf{GraspNet}~\cite{fang2020graspnet} as the primary grasp pose estimator. GraspNet produces 6-DOF grasp candidates from point clouds; however, real-hardware testing revealed that the predicted poses were excessively noisy for simple planar objects in our workspace, rendering them unreliable for closed-loop execution.
 
-$$s \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} = \mathbf{K} \begin{bmatrix} \mathbf{R} | \mathbf{t} \end{bmatrix} \begin{bmatrix} X \\ Y \\ Z \\ 1 \end{bmatrix}$$
+Since the majority of manipulation tasks require top-down grasping constrained to the $xy$-plane, we adopted a deterministic \textbf{Oriented Bounding Box (OBB)} approach as the primary grasp pose estimator, ensuring reliable parallel-jaw gripper alignment within the current hardware baseline. Two ROS2 services are exposed by this module:
 
-Testing revealed that this approach lacked flexibility at varying heights; any slight misalignment in the rotation matrix $\mathbf{R}$ (e.g., the camera sensor not being perfectly parallel to the workspace) introduces an error that scales non-linearly with $Z$. To address this, we concurrently evaluate the pure intrinsic pipeline against an empirical calibration model. This empirical model introduces an affine-based correction to adjust for localized systematic deviations (scaling, shear, and translation) on the 2D plane:
+\begin{itemize}
+    \item \texttt{/obb/find\_object\_angle\_bb} --- returns the object centroid $(u, v)$, rotation angle $\theta$, and bounding box dimensions.
+    \item \texttt{/obb/find\_object\_angle} --- returns only the centroid $(u, v)$ and rotation angle $\theta$.
+\end{itemize}
 
-$$\begin{bmatrix} X_{\text{corr}} \\ Y_{\text{corr}} \end{bmatrix} = \begin{bmatrix} s_x & k \\ -k & s_y \end{bmatrix} \begin{bmatrix} X_{\text{raw}} \\ Y_{\text{raw}} \end{bmatrix} + \begin{bmatrix} t_x \\ t_y \end{bmatrix}$$
+The rotation angle $\theta$ is derived from the principal axis of the object mask, enabling the gripper to align with the object's dominant orientation and execute a collision-free parallel-jaw grasp. This design choice provides a deterministic and geometrically interpretable grasp strategy for planar objects. Revisiting GraspNet for complex multi-DOF grasping scenarios is planned once the hardware baseline is fully stabilised.
 
-To implement both simultaneously without degrading system latency, we developed a weighted hybrid architecture that blends the intrinsic and empirical estimates based on the pixel's distance from the image center, applying a higher weight to the empirical model near the calibration region (center) and prioritizing the intrinsic model at the edge regions where empirical fitting is less reliable.
+\subsubsection{Pixel-to-Real-World Coordinate Mapping}
 
-During testing, we compared the pure intrinsic parameters versus the intrinsic-plus-empirical models at two different Z-axis standoffs. At a camera height of $0.67\text{ m}$, the pure intrinsic model performed best with an RMSE of $1.28\text{ cm}$, while the empirical model overfit and added noise (RMSE of $1.56\text{ cm}$). Conversely, at $0.55\text{ m}$, the empirical correction successfully mitigated systematic distortion, achieving an RMSE of $1.35\text{ cm}$ compared to the intrinsic-only RMSE of $2.35\text{ cm}$. 
+A critical component of the vision pipeline is the \texttt{pixel\_to\_real\_world} module, which maps a 2D image coordinate $(u, v)$ to its corresponding real-world position $(X, Y)$ in the robot's base frame. The reliability of the OBB-based grasping strategy is fundamentally dependent on the accuracy of this mapping.
 
-To rigorously evaluate the dynamic weighting architecture, we benchmarked the pure intrinsic parameters against the combined intrinsic-plus-empirical model at two different Z-axis standoffs. \textbf{For each test configuration and height, data was collected by sampling 20 manually marked pixel points to compare against their ground-truth real-world coordinates.}
+\paragraph{Baseline Evaluation.}
+
+Initial baseline tests revealed significant spatial deviations when the operational height of the camera was altered. Relying exclusively on an extrinsic matrix derived from a single reference point without comprehensive spatial calibration --- violates geometric best practices: when only a localised camera coordinate is available, the transformation implicitly assumes an ideal parallel plane, failing to account for physical mounting misalignments or depth-dependent lens distortions.
+
+Baseline discrepancies were measured at two mounting heights $H_b$. At $H_b = 54.41\,\text{cm}$, the total distance RMSE was $4.170\,\text{cm}$; at $H_b = 67.11\,\text{cm}$, it dropped to $1.244\,\text{cm}$. The substantial increase in error at the lower height, without dynamic recalibration, indicates that the root cause of coordinate displacement is \textbf{systematic} (calibration-based) rather than a quantization or resolution artefact.
+
+\paragraph{Pinhole Camera Model.}
+
+The intrinsic projection pipeline follows the standard Pinhole Camera Model, which maps a 3D world point $\mathbf{P} = [X,\,Y,\,Z]^T$ to a 2D pixel $\mathbf{p} = [u,\,v]^T$ via the intrinsic matrix $\mathbf{K}$ and extrinsic parameters $[\mathbf{R}\,|\,\mathbf{t}]$:
+
+\begin{equation}
+    s \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} = \mathbf{K} \begin{bmatrix} \mathbf{R} \mid \mathbf{t} \end{bmatrix} \begin{bmatrix} X \\ Y \\ Z \\ 1 \end{bmatrix}
+    \label{eq:pinhole}
+\end{equation}
+
+Any misalignment in the rotation matrix $\mathbf{R}$ --- such as the camera sensor not being perfectly parallel to the workspace --- introduces an error that scales non-linearly with $Z$, limiting the model's robustness across varying height configurations.
+
+\paragraph{Hybrid Intrinsic-Empirical Calibration.}
+
+To mitigate systematic distortion, we benchmark the pure-intrinsic pipeline against an \textbf{empirical affine correction model} that adjusts for localised systematic deviations (scaling, shear, and translation) on the 2D output plane:
+
+\begin{equation}
+    \begin{bmatrix} X_{\text{corr}} \\ Y_{\text{corr}} \end{bmatrix} = \begin{bmatrix} s_x & k \\ -k & s_y \end{bmatrix} \begin{bmatrix} X_{\text{raw}} \\ Y_{\text{raw}} \end{bmatrix} + \begin{bmatrix} t_x \\ t_y \end{bmatrix}
+    \label{eq:empirical}
+\end{equation}
+
+where $s_x$, $s_y$ are axis-wise scale factors, $k$ is a shear coefficient, and $t_x$, $t_y$ are translational offsets fitted from calibration measurements.
+
+To utilise both models simultaneously without degrading system latency, a \textbf{weighted hybrid architecture} was developed. The final estimate blends the intrinsic and empirical predictions based on each pixel's radial distance from the image centre: a higher weight is assigned to the empirical model near the calibration region (centre), while the intrinsic model is prioritised toward image edges where empirical fitting generalises less reliably.
+
+\paragraph{Calibration Evaluation.}
+
+For each test configuration, 20 manually marked pixel points were sampled and compared against their ground-truth real-world coordinates. Results are summarised in Table~\ref{tab:error_isolation}.
 
 \begin{table}[htbp]
     \centering
-    \caption{Comparison of RMSE for pure intrinsic versus hybrid models to isolate error sources.}
+    \caption{RMSE comparison of pure intrinsic versus hybrid intrinsic-empirical models at two camera heights.}
     \label{tab:error_isolation}
-    \begin{tabular}{@{}p{2cm}p{3cm}p{3cm}p{7cm}@{}}
+    \begin{tabular}{@{}p{2.5cm}p{3cm}p{3.5cm}p{6cm}@{}}
         \toprule
-        \textbf{Camera Height (H)} & \textbf{Intrinsic Only (RMSE)} & \textbf{Intrinsic + Empirical (RMSE)} & \textbf{Observation} \\
+        \textbf{Camera Height} & \textbf{Intrinsic Only (RMSE)} & \textbf{Intrinsic + Empirical (RMSE)} & \textbf{Observation} \\
         \midrule
-        0.67 m & 1.28 cm & 1.56 cm & Intrinsic performs best; empirical model overfits/adds noise. \\
-        0.55 m & 2.35 cm & 1.35 cm & Empirical correction successfully mitigates systematic distortion. \\
+        $0.67\,\text{m}$ & $1.28\,\text{cm}$ & $1.56\,\text{cm}$ & Intrinsic model performs best; empirical model overfits and adds noise at this height. \\
+        $0.55\,\text{m}$ & $2.35\,\text{cm}$ & $1.35\,\text{cm}$ & Empirical correction successfully mitigates systematic distortion at the lower standoff. \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Our evaluation mathematically isolates and confirms that the displacement is driven by \textbf{systematic error}, not quantization error. This thought process is validated by analyzing the behavior of the error vector $\mathbf{E} = \mathbf{P}_{\text{real}} - \mathbf{P}_{\text{ideal}}$. If the error were quantization-based (limited by pixel density), the metric error on the workspace should theoretically \textit{decrease} or remain constant as the camera moves closer to the target (from $0.67\text{ m}$ to $0.55\text{ m}$) due to an increase in spatial resolution per pixel as shown in Table \ref{tab:error_isolation}
+The results mathematically isolate and confirm that the dominant error source is \textbf{systematic} rather than quantization-based. If the error were driven by limited pixel density, the metric error should decrease or remain constant as the camera moves closer to the workspace (from $0.67\,\text{m}$ to $0.55\,\text{m}$) due to an increase in spatial resolution per pixel. The observed \textit{increase} in intrinsic-only RMSE at the lower height contradicts this hypothesis, validating the use of the empirical affine correction in that regime.
 
-Additional work on the vision module focused on improving scene understanding and handling multiple instances of the same object. Two new ROS2 services were added.
+\subsubsection{Object Detection and Segmentation Pipeline}
 
-\textbf{Scene Understanding via VQA}
-We implemented \texttt{/vision/vqa}, a service that enables open-ended scene understanding using the Vision-Language Model \texttt{qwen3-vl:8b} running locally via Ollama. The service accepts a natural-language prompt and returns the model’s response based on the live RGB camera feed.
+The core object detection pipeline combines Segment Anything Model (\textbf{SAM})~\cite{kirillov2023segment} with \textbf{CLIP}~\cite{radford2021clip} to achieve open-vocabulary, zero-shot object localisation.
 
-The \texttt{high\_level\_planner} calls this service at startup with the prompt: \textit{“Describe the scene, including what objects exist and how many of each object.”} This provides an initial description of the workspace. The service is also exposed as a tool that the \texttt{high\_level\_planner} can call to query additional information about the scene during execution.
+\paragraph{Single-Object Detection (\texttt{/vision/find\_object}).}
+SAM generates class-agnostic segmentation masks over the entire scene. Each mask is cropped and encoded by CLIP, and the resulting embedding is compared against the text embedding of the query label via cosine similarity. The mask region achieving the highest similarity score is returned as a single bounding box. A strict rejection threshold of $\text{similarity} < 0.2$ is enforced to suppress false positives.
 
-\textbf{Multi-Object Detection}
-We added \texttt{/vision/find\_multi\_object}, extending the existing \texttt{/vision/find\_object} service. The original service segments objects using SAM and identifies the object matching a given label via CLIP similarity search, returning a single bounding box.
+\paragraph{Multi-Object Detection (\texttt{/vision/find\_multi\_object}).}
+An extended service returns the top-$k$ bounding boxes ranked by CLIP similarity score, where $k$ is specified in the request. This enables the system to detect multiple instances of the same object class within a single scene, supporting tasks that require manipulating more than one object of matching appearance.
 
-The new service returns the top-$k$ bounding boxes ranked by similarity score, where $k$ is specified in the request. This allows the system to detect multiple instances of the same object in the workspace.
+The cosine similarity used for both ranking and rejection is defined as:
+\begin{equation}
+    \text{Similarity} = \left(\frac{\mathbf{f}_{\text{image}}}{\|\mathbf{f}_{\text{image}}\|}\right) \cdot \left(\frac{\mathbf{f}_{\text{text}}}{\|\mathbf{f}_{\text{text}}\|}\right)^T
+    \label{eq:cosine}
+\end{equation}
+where $\mathbf{f}_{\text{image}}$ and $\mathbf{f}_{\text{text}}$ are the CLIP image and text feature vectors, respectively. Similarity scores range from $-1.0$ to $1.0$.
+
+
 
 \subsection{Speech}
 
