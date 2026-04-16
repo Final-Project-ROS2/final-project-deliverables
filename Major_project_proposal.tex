@@ -313,15 +313,46 @@ The new service returns the top-$k$ bounding boxes ranked by similarity score, w
 
 \subsection{Speech}
 
-The speech module enables natural language interaction between the user and the robotic system through an Automatic Speech Recognition (ASR) pipeline. It is designed to convert spoken commands into structured textual instructions that can be processed by the planning subsystem.
+The speech module enables natural language interaction between the user and the robotic system through a real-time Automatic Speech Recognition (ASR) pipeline. Its primary function is to convert spoken commands into structured textual instructions that can be consumed by the planning subsystem within the ROS2 architecture.
 
-The module consists of three main components: audio input capture, speech-to-text processing, and command validation. A microphone continuously captures audio signals, which are then processed by the ASR engine to generate text transcripts in real time. These transcripts are published to a ROS2 topic, allowing downstream modules to subscribe and react in an event-driven manner.
+As illustrated in Figure~\ref{fig:speech-pipeline}, the module follows a sequential processing pipeline consisting of audio capture, speech-to-text transcription, and command validation.
 
-To ensure reliable execution and prevent unintended actions, the system employs a keyword-based gating mechanism. A command is only forwarded to the planning module when it contains the predefined activation keyword “EXECUTE.” This design ensures that partial or unintended speech inputs do not trigger robot actions.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/speech_pipeline.png}
+    \caption{Speech processing pipeline from audio input to planning and emergency control}
+    \label{fig:speech-pipeline}
+\end{figure}
 
-In addition, the system incorporates a safety mechanism through an emergency keyword. When the word “STOP” is detected, an emergency signal is immediately published to a dedicated ROS2 topic, which is monitored by the low-level controller. This allows the robot to halt all ongoing motions instantly. The system remains in a halted state until a recovery keyword (“OKAY”) is received.
+\paragraph{Audio Capture}
+A microphone device continuously captures user speech input. The audio stream is processed in real time and forwarded to the ASR engine. The system is designed to operate in an event-driven manner, allowing immediate processing once speech is detected.
 
-The speech module is designed to be modular and extensible, allowing integration with more advanced natural language understanding components or multimodal interaction systems in future developments.
+\paragraph{Speech-to-Text Processing}
+The captured audio is transcribed into text using the AssemblyAI ASR service. The transcription process converts raw audio signals into natural language text with low latency, enabling near real-time interaction. The resulting text output is then published to a dedicated ROS2 topic, allowing other modules, particularly the planning node, to subscribe and process incoming commands.
+
+\paragraph{Command Validation and Gating}
+To ensure safe and intentional execution, a keyword-based gating mechanism is implemented. A command is only forwarded to the planning module if it contains the predefined activation keyword \texttt{``EXECUTE''}. This prevents incomplete or unintended speech from triggering robot actions.
+
+Formally, let $S$ denote the transcribed sentence. The command is considered valid if:
+\[
+\text{Valid}(S) =
+\begin{cases}
+1, & \text{if } \texttt{``EXECUTE''} \in S \\
+0, & \text{otherwise}
+\end{cases}
+\]
+
+Only when $\text{Valid}(S) = 1$ will the command be published to the planning node.
+
+\paragraph{Emergency Stop Mechanism}
+In addition to command execution, the module incorporates a safety-critical interrupt mechanism. When the keyword \texttt{``STOP''} is detected, an emergency signal is immediately published to a dedicated ROS2 topic. This topic is continuously monitored by the low-level controller, which halts all robot motion upon receiving the signal.
+
+The system remains in a halted state until the recovery keyword \texttt{``OKAY''} is detected, at which point normal operation resumes.
+
+\paragraph{System Integration}
+The speech module interfaces directly with the ROS2 ecosystem through topic-based communication. Transcribed commands are published to the planning node, while emergency signals are sent to the motion controller. This modular design ensures clear separation between perception, decision-making, and execution layers.
+
+Overall, the speech subsystem provides a reliable and structured interface for human–robot interaction, enabling safe command execution while maintaining responsiveness and modularity for future extensions.
 \subsection{Planning}
 
 Our recent work in planning focuses on improving the robustness and efficiency of the automatic PDDL generation pipeline used by the high-level planner. Initially, the system relied on a large language model (LLM) to directly generate both the PDDL \texttt{domain} and \texttt{problem} files from a natural language instruction. While this approach demonstrated the feasibility of natural language to PDDL translation, it introduced several practical challenges.
