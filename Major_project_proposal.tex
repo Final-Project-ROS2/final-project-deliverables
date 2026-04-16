@@ -313,8 +313,15 @@ The new service returns the top-$k$ bounding boxes ranked by similarity score, w
 
 \subsection{Speech}
 
-Progress on the speech module has remained steady but with meaningful advancement in bidirectional interaction capabilities. We have completed development of a text-to-speech (TTS) pipeline to support richer user feedback. The TTS system is implemented using the open-source \texttt{TTS library}~\cite{coqui-tts}, specifically leveraging the \texttt{tts\_models/en/ljspeech/tacotron2-DDC} model for speech synthesis. The implementation accepts text input, synthesizes speech using the pre-trained Tacotron2 model with DDC (Differential Duration Control), and outputs audio to a file. However, the current implementation is not yet integrated into the ROS2 ecosystem and has a key limitation: it generates audio files that must be played separately rather than streaming audio directly or playing it in real-time. Because the core speech recognition functionality reached high accuracy and low latency during semester 1 testing, and given that TTS remains a secondary feature enhancement, the team is prioritizing the broader transition from simulation to hardware and core perception-planning integration over full TTS integration for now.
+The speech module enables natural language interaction between the user and the robotic system through an Automatic Speech Recognition (ASR) pipeline. It is designed to convert spoken commands into structured textual instructions that can be processed by the planning subsystem.
 
+The module consists of three main components: audio input capture, speech-to-text processing, and command validation. A microphone continuously captures audio signals, which are then processed by the ASR engine to generate text transcripts in real time. These transcripts are published to a ROS2 topic, allowing downstream modules to subscribe and react in an event-driven manner.
+
+To ensure reliable execution and prevent unintended actions, the system employs a keyword-based gating mechanism. A command is only forwarded to the planning module when it contains the predefined activation keyword “EXECUTE.” This design ensures that partial or unintended speech inputs do not trigger robot actions.
+
+In addition, the system incorporates a safety mechanism through an emergency keyword. When the word “STOP” is detected, an emergency signal is immediately published to a dedicated ROS2 topic, which is monitored by the low-level controller. This allows the robot to halt all ongoing motions instantly. The system remains in a halted state until a recovery keyword (“OKAY”) is received.
+
+The speech module is designed to be modular and extensible, allowing integration with more advanced natural language understanding components or multimodal interaction systems in future developments.
 \subsection{Planning}
 
 Our recent work in planning focuses on improving the robustness and efficiency of the automatic PDDL generation pipeline used by the high-level planner. Initially, the system relied on a large language model (LLM) to directly generate both the PDDL \texttt{domain} and \texttt{problem} files from a natural language instruction. While this approach demonstrated the feasibility of natural language to PDDL translation, it introduced several practical challenges.
@@ -572,17 +579,15 @@ Future work will focus on further refining the system and benchmarking the plann
 
 \subsubsection{Interface with Robot Arm}
 
-The hardware subsystem consists of a UR7 robotic manipulator integrated with a depth camera mounted at the base of the robot. The camera is rigidly fixed relative to the robot base, establishing a stable and consistent spatial relationship between the sensing and manipulation components.
+Progress on the hardware subsystem is on schedule, with all major integration tasks completed. The UR7 robotic manipulator has been successfully deployed and interfaced with the workstation, and stable communication through the control pipeline has been established.
 
-A fixed transformation between the camera frame and the robot base frame is defined to enable accurate perception-to-action mapping. This transformation supports reliable conversion from visual observations to robot-executable coordinates, eliminating the need for repeated calibration across operational sessions.
+The depth camera has been mounted at the base of the robot and rigidly fixed to maintain a consistent spatial relationship with the robot frame. A fixed transformation between the camera and robot base has been defined, enabling reliable perception-to-action mapping without requiring repeated calibration across sessions.
 
-The experimental workspace is configured with a controlled visual background to improve perception robustness. An acrylic plate is installed within the camera’s field of view to provide a uniform and consistent background, reducing visual noise and improving the reliability of object detection and segmentation.
+The experimental workspace has been prepared with a controlled visual setup. An acrylic plate has been installed within the camera’s field of view to provide a uniform background, improving perception consistency during operation.
 
-Mechanical integration is further enhanced through a structured cable management system. A custom-designed mount secures and guides all cables along the camera support structure, preventing cable-induced disturbances and ensuring that wiring does not interfere with the robot’s workspace or motion range.
+Mechanical integration has also been finalized. A structured cable management solution has been implemented using a custom mounting design to secure and guide wiring, ensuring that cables do not interfere with the robot’s motion. The camera mounting system has been reinforced to minimize vibration during operation, improving overall system stability.
 
-To improve overall structural stability, the camera mounting system is rigidly fixed to the robot base, minimizing vibration and ensuring consistent sensor positioning during robot motion.
-
-Overall, the hardware configuration provides a rigid, repeatable, and interference-free platform that supports reliable perception, safe robot operation, and seamless integration with the planning and control subsystems.
+With these components in place, the hardware platform is now in a stable and operational state, supporting reliable execution of perception and planning tasks. Future work will focus on further improving mechanical robustness and evaluating system performance under more dynamic real-world conditions.
 \newpage
 \section{Theory and Technical Backup}
 
@@ -1281,9 +1286,11 @@ Looking forward, simulation will continue to play a key role in verifying path p
 
 \subsection{Hardware}
 
-Despite establishing a stable and reproducible hardware execution environment, several limitations still exist. In particular, motion from the UR7e causes instability in the camera mount, leading to vibrations during operation and reducing the consistency of visual pose estimation. Additionally, the acrylic plate mounted on the base lacks sufficient rigidity, bending under load and failing to provide proper support for the camera frame. These mechanical shortcomings affect repeatability, introduce calibration drift, and need to be resolved for reliable real-world, perception-driven performance.
+Despite establishing a stable and reproducible hardware execution environment, several limitations still exist. In particular, motion from the UR7e introduces vibrations in the camera mount, which can reduce the consistency of visual pose estimation during operation. These vibrations affect repeatability and may introduce minor calibration drift over time.
 
-Future work should focus on improving the mechanical stability and robustness of the system. The camera mounting structure can be redesigned using more rigid materials such as aluminum or steel, along with proper brackets and vibration-damping components to minimize movement. Replacing the current acrylic base with a stiffer platform would further enhance structural integrity. In addition, calibration refinement techniques, such as periodic or online recalibration, can help mitigate drift caused by residual instability. Exploring sensor fusion approaches to complement vision-based perception may also improve robustness. Finally, optimizing motion planning to reduce abrupt movements of the robotic arm could further decrease vibrations, leading to more stable perception and improved repeatability in real-world tasks.
+Additionally, the acrylic plate positioned on the robot base is used as a controlled visual background within the camera's field of view. However, its current implementation does not fully eliminate background noise under all lighting conditions, which can impact perception robustness. Variations in illumination and reflections on the acrylic surface may still introduce inconsistencies in object detection and segmentation.
+
+These limitations highlight the need for improved mechanical stability and more controlled visual conditions to ensure reliable real-world, perception-driven performance.
 
 \newpage
 \bibliographystyle{IEEEtran}
