@@ -272,8 +272,8 @@ The initial hardware deployment evaluated \textbf{GraspNet}~\cite{fang2020graspn
 Since the majority of manipulation tasks require top-down grasping constrained to the $xy$-plane, we adopted a deterministic \textbf{Oriented Bounding Box (OBB)} approach as the primary grasp pose estimator, ensuring reliable parallel-jaw gripper alignment within the current hardware baseline. Two ROS2 services are exposed by this module:
 
 \begin{itemize}
-    \item \texttt{/obb/find\_object\_angle\_bb} --- returns the object centroid $(u, v)$, rotation angle $\theta$, and bounding box dimensions.
-    \item \texttt{/obb/find\_object\_angle} --- returns only the centroid $(u, v)$ and rotation angle $\theta$.
+    \item \texttt{/obb/find\_object\_angle\_bb} returns the object centroid $(u, v)$, rotation angle $\theta$, and bounding box dimensions.
+    \item \texttt{/obb/find\_object\_angle} returns only the centroid $(u, v)$ and rotation angle $\theta$.
 \end{itemize}
 
 The rotation angle $\theta$ is derived from the principal axis of the object mask, enabling the gripper to align with the object's dominant orientation and execute a collision-free parallel-jaw grasp. This design choice provides a deterministic and geometrically interpretable grasp strategy for planar objects. Revisiting GraspNet for complex multi-DOF grasping scenarios is planned once the hardware baseline is fully stabilised.
@@ -284,7 +284,7 @@ A critical component of the vision pipeline is the \texttt{pixel\_to\_real\_worl
 
 \paragraph{Baseline Evaluation.}
 
-Initial baseline tests revealed significant spatial deviations when the operational height of the camera was altered. Relying exclusively on an extrinsic matrix derived from a single reference point without comprehensive spatial calibration --- violates geometric best practices: when only a localised camera coordinate is available, the transformation implicitly assumes an ideal parallel plane, failing to account for physical mounting misalignments or depth-dependent lens distortions.
+Initial baseline tests revealed significant spatial deviations when the operational height of the camera was altered. Relying exclusively on an extrinsic matrix derived from a single reference point without comprehensive spatial calibration violates geometric best practices: when only a localised camera coordinate is available, the transformation implicitly assumes an ideal parallel plane, failing to account for physical mounting misalignments or depth-dependent lens distortions.
 
 Baseline discrepancies were measured at two mounting heights $H_b$. At $H_b = 54.41\,\text{cm}$, the total distance RMSE was $4.170\,\text{cm}$; at $H_b = 67.11\,\text{cm}$, it dropped to $1.244\,\text{cm}$. The substantial increase in error at the lower height, without dynamic recalibration, indicates that the root cause of coordinate displacement is \textbf{systematic} (calibration-based) rather than a quantization or resolution artefact.
 
@@ -297,7 +297,7 @@ The intrinsic projection pipeline follows the standard Pinhole Camera Model, whi
     \label{eq:pinhole}
 \end{equation}
 
-Any misalignment in the rotation matrix $\mathbf{R}$ --- such as the camera sensor not being perfectly parallel to the workspace --- introduces an error that scales non-linearly with $Z$, limiting the model's robustness across varying height configurations.
+Any misalignment in the rotation matrix $\mathbf{R}$ such as the camera sensor not being perfectly parallel to the workspace introduces an error that scales non-linearly with $Z$, limiting the model's robustness across varying height configurations.
 
 \paragraph{Hybrid Intrinsic-Empirical Calibration.}
 
@@ -1135,9 +1135,9 @@ As detailed in Table~\ref{tab:sam_benchmark}, SAM maintains high reliability at 
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=\linewidth]{images/SAM_200_LUX.png}
-\caption{SAM Performance at 200 Lux}
-\label{fig:sam-200-lux}
+\includegraphics[width=\linewidth]{images/SAM_70_LUX.png}
+\caption{SAM Performance at 70 Lux}
+\label{fig:sam-70-lux}
 \end{figure}
 
 
