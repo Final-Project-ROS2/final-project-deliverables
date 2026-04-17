@@ -662,8 +662,7 @@ The project is structured around four primary technical area of concentration ex
 \subsection{Current Timeline}
 
 \subsubsection{Image Processing}
-The current progress is on schedule. Having transitioned from simulation to hardware, we refined our perception pipelines by implementing an Oriented Bounding Box (OBB) grasping strategy and a hybrid pixel-to-real-world calibration. We are currently benchmarking real-world accuracy and latency for real-time manipulation. With the foundational integration complete, our next focus is iterative testing to improve system robustness against environmental factors like varying lighting and dynamic workspace conditions.
-
+The vision subsystem development was completed on schedule, with all foundational tasks and benchmarking successfully delivered. To better suit empirical deployment, some simulation components are being adapted, notably transitioning from GraspNet to Oriented Bounding Box (OBB) representations. The pipeline is now stable. Future work will finalize these architectural shifts and evaluate system robustness across diverse physical scenarios.
 \subsubsection{Speech Processing}
 
 Progress is slightly behind the planned schedule, though not significantly impacting overall project completion. The text-to-speech implementation has been completed using the Tacotron2 model. However, the TTS module is not yet fully integrated into the ROS2 system architecture. The TTS feature itself is considered a "nice to have" enhancement for user interaction, and the current development focus remains on completing the hardware setup, stabilizing the perception pipeline, and integrating the core planning and execution modules. Effort is directed toward migrating the overall system from simulation to physical hardware, with TTS integration deferred to later phases if time permits.
@@ -1197,8 +1196,6 @@ For each world:
     \item Repeat for all 10 worlds to obtain aggregate performance statistics.
 \end{enumerate}
 
-\subsubsection{Experimentation and Evaluation}
-
 \begin{table}[h!]
 \centering
 \caption{Summary of vision-module benchmark results (5 worlds $\times$ 5 objects = 25 objects)}
@@ -1274,16 +1271,18 @@ As detailed in Table~\ref{tab:sam_benchmark}, SAM maintains high reliability at 
 
 \begin{table}[htbp]
     \centering
-    \caption{SAM Benchmark across varying lighting conditions.}
+    \caption{SAM benchmark across varying lighting conditions. Bold indicates the best value per metric; $\dagger$ marks the minimum acceptable illumination threshold (70\,Lux).}
     \label{tab:sam_benchmark}
-    \begin{tabular}{lcccc}
+    \small
+    \begin{tabular}{lS[table-format=1.3]S[table-format=1.3]S[table-format=1.2]S[table-format=1.2]}
         \toprule
-        \textbf{Intensity (Lux)} & \textbf{Avg Confidence} & \textbf{Avg IoU} & \textbf{Stability Rate (AP $\ge$ 0.5)} & \textbf{Latency (s)} \\
+        \textbf{Intensity (Lux)} & {\textbf{Avg Confidence}} & {\textbf{Avg IoU}} & {\textbf{Stability Rate}} & {\textbf{Latency (s)}} \\
+        & & & {(AP $\ge$ 0.5)} & \\
         \midrule
-        250 & 0.649 & 0.906 & 0.96 & 0.50 \\
-        200 & 0.655 & 0.925 & 0.96 & 0.50 \\
-        70  & 0.648 & 0.820 & 0.86 & 0.50 \\
-        15  & 0.601 & 0.371 & 0.26 & 0.60 \\
+        250         & 0.649          & 0.906          & 0.96          & \textbf{0.50} \\
+        200         & \textbf{0.655} & \textbf{0.925} & \textbf{0.96} & \textbf{0.50} \\
+        70$^\dagger$ & 0.648         & 0.820          & 0.86          & \textbf{0.50} \\
+        15          & 0.601          & 0.371          & 0.26          & 0.60          \\
         \bottomrule
     \end{tabular}
 \end{table}
