@@ -349,11 +349,11 @@ Progress on the speech module has remained steady but with meaningful advancemen
 
 The planning system is implemented as a hierarchical pipeline that decomposes natural language instructions into executable robot actions. As shown in Figure~\ref{fig:planning_ros2}, the architecture separates planning into three layers: high-level reasoning, medium-level task execution, and low-level motion control. This design addresses the challenges of ambiguous language, strict execution constraints, and noisy perception, while enabling modular development and debugging.
 
-At the \textbf{high level}, natural language instructions are translated into structured task plans. Two approaches are supported. In the neural approach, a large language model (LLM) directly generates a sequence of subtasks, providing flexibility but limited guarantees on correctness. In the neuro-symbolic approach, instructions are converted into a symbolic representation using the Planning Domain Definition Language (PDDL), which is solved using the Fast Downward planner to produce a logically valid plan.
+At the \textbf{high level}, natural language instructions are translated into structured task plans. Two complementary approaches are supported. In \textbf{LLM-Direct Planning}, a large language model (LLM) directly generates a sequence of subtasks and corresponding actions for downstream execution. In \textbf{Symbolic Planning (PDDL-based)}, the instruction is transformed into a formal planning problem and solved by Fast Downward~\cite{the-fast-downward-planning-system}, producing a logically grounded action sequence. In both approaches, the generated plan is presented to the user before execution so that steps can be confirmed, revised, or rejected through natural language feedback.
 
-For the neuro-symbolic approach, we evaluate two PDDL problem-generation strategies. In the \textbf{Direct Generation} setting, the LLM generates the full PDDL problem text from the textual task description. In the \textbf{IR-Based Generation} setting, the LLM first generates a structured intermediate representation (IR) in JSON format, then a deterministic conversion step produces the final PDDL problem file.
+Within the PDDL-based branch, we evaluate two problem-generation strategies. In \textbf{Direct Generation}, the LLM generates the full PDDL problem text from the input description. In \textbf{IR-Based Generation}, the model first generates a structured intermediate representation (IR) in JSON format, and a deterministic conversion step then renders the final PDDL problem file.
 
-The JSON IR contains three core elements: \texttt{objects}, \texttt{init} predicates, and \texttt{goals}. This reduces the model's burden of producing strict symbolic syntax directly while preserving the semantic content required for planning.
+The JSON IR contains three core elements: \texttt{objects}, \texttt{init} predicates, and \texttt{goals}. This design reduces the burden of producing strict parenthesized PDDL syntax directly while preserving the symbolic content required for planning. It also aligns with API-level structured output constraints, improving parseability and reducing post-processing effort.
 
 \begin{figure}[H]
     \centering
@@ -362,13 +362,15 @@ The JSON IR contains three core elements: \texttt{objects}, \texttt{init} predic
     \label{fig:pddl-pipeline}
 \end{figure}
 
-As illustrated in Figure~\ref{fig:pddl-pipeline}, the structured IR is deterministically transformed into a valid PDDL problem file using Jinja2 templating. The domain file remains fixed and manually authored, ensuring strict control over predicates and actions. This two-stage pipeline improves reliability by separating semantic generation (LLM) from formal syntax rendering (template).
+As illustrated in Figure~\ref{fig:pddl-pipeline}, the structured IR is deterministically transformed into a valid PDDL problem file using Jinja2 templating. Object identifiers are mapped into the \texttt{(:objects ...)} block, initial predicates are rendered in \texttt{(:init ...)}, and goal predicates are rendered in \texttt{(:goal (and ...))}. Because this mapping is rule-based, variability is confined to IR generation while syntax rendering remains reproducible. The domain file remains fixed and manually authored, ensuring strict control over available predicates and actions.
 
-The \textbf{medium-level planner} bridges high-level plans and execution by decomposing subtasks into sequences of callable robot capabilities. It interacts with the low-level system through action servers, treating motion primitives as tools that can be dynamically composed based on task requirements and system state.
+The \textbf{medium-level planner} bridges high-level plans and execution by decomposing subtasks into sequences of callable robot capabilities. Implemented with LangChain~\cite{langchain-docs}, it exposes the \texttt{/medium\_level} action server and treats low-level skills as callable tools, enabling dynamic composition of motion steps according to current task context and feedback.
 
-At the \textbf{low level}, the planner executes motion commands using constrained path and trajectory planning to ensure smooth and safe operation. It also provides feedback such as execution status and robot state, enabling monitoring and error handling across the hierarchy.
+At the \textbf{low level}, the \texttt{low\_level\_planner\_executor} node executes motion commands using constrained Cartesian path planning and joint-space safety constraints to ensure smooth and predictable operation. The node provides dedicated action servers including \texttt{/plan\_cartesian\_relative}, \texttt{/get\_current\_pose}, \texttt{/get\_joint\_angles}, \texttt{/set\_joint\_angles}, and \texttt{/plan\_complex\_cartesian\_steps}. Safety is reinforced through subscription to an \texttt{/emergency} topic that can immediately interrupt motion when a critical keyword is detected.
 
-Overall, this hierarchical and hybrid planning framework enables reliable transformation of natural language instructions into executable robot behavior, while maintaining flexibility, safety, and modularity.
+The planning stack is tightly integrated with perception and speech. The \texttt{vision} node is available as a reasoning source for high- and medium-level planners, and the \texttt{asr} node publishes recognized commands to \texttt{/transcript} after activation-keyword detection, supporting event-driven execution flow across the hierarchy.
+
+Overall, the hierarchical and hybrid planning framework enables reliable transformation of natural language instructions into executable robot behavior. The combined architecture preserves flexibility through language-conditioned planning, improves formal reliability through IR-based symbolic generation, and maintains safety and modularity through layered execution and emergency interruption handling.
 
 \subsection{Simulation}
 
