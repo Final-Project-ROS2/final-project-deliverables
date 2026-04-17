@@ -437,9 +437,23 @@ Overall, the Gazebo Classic simulation delivers a robust and realistic platform 
 
 \subsection{Hardware}
 
-The hardware subsystem is centered around a UR7 collaborative robotic manipulator equipped with a parallel gripper and an external depth camera. The system is designed to provide a stable and consistent physical platform that mirrors the interfaces and abstractions used in simulation, enabling seamless deployment of planning and perception pipelines.
+The hardware subsystem is centered around a UR7 collaborative robotic manipulator equipped with a parallel gripper and an external depth camera. The system is designed to provide a stable and consistent physical platform that mirrors the interfaces and abstractions used in simulation, enabling seamless deployment of planning and perception pipelines. The deployed workstation layout and robot placement are shown in Figures~\ref{fig:hardware-setup-overall-1} and~\ref{fig:hardware-setup-overall-2}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{images/setup_1.jpg}
+    \caption{Overall hardware setup showing the UR7 platform in the experimental workspace}
+    \label{fig:hardware-setup-overall-1}
+\end{figure}
 
 The UR7 robot provides six degrees of freedom, allowing flexible manipulation within a typical tabletop workspace. It is interfaced with a workstation via a dedicated Ethernet connection, enabling real-time communication with the robot controller through the \texttt{ur\_robot\_driver}. Motion execution is handled using MoveIt2, which performs inverse kinematics, trajectory generation, and collision-aware planning before streaming commands to the robot.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{images/setup_2.jpg}
+    \caption{Hardware setup with mounted acrylic sheet}
+    \label{fig:hardware-setup-overall-2}
+\end{figure}
 
 From a kinematic perspective, the pose of the robot end-effector is represented using a homogeneous transformation matrix:
 
@@ -496,9 +510,16 @@ p_{base} = T_{base}^{cam} \cdot p_{cam}
 \noindent
 This formulation enables consistent integration between perception outputs and motion planning inputs.
 
-To improve perception reliability, a uniform acrylic plate is placed within the camera’s field of view to act as a controlled visual background. This reduces the impact of environmental noise and improves the robustness of object detection and segmentation.
+To improve perception reliability, a uniform acrylic plate is placed within the camera’s field of view to act as a controlled visual background, as shown in Figure~\ref{fig:hardware-setup-overall-2}. This reduces the impact of environmental noise and improves the robustness of object detection and segmentation.
 
-In addition, structured cable management is implemented using a custom mounting solution to secure wiring and prevent interference with the robot’s motion. These design considerations improve system stability and ensure safe operation within the robot workspace.
+In addition, structured cable management is implemented using a custom mounting solution to secure wiring and prevent interference with the robot’s motion (Figure~\ref{fig:hardware-cable-management}). These design considerations improve system stability and ensure safe operation within the robot workspace.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{images/cable_management.jpg}
+    \caption{Cable management system using custom 3D-printed mounting components}
+    \label{fig:hardware-cable-management}
+\end{figure}
 
 The hardware architecture is designed to maintain full compatibility with the simulation environment, ensuring that motion plans, coordinate frames, and control interfaces remain consistent across both domains. This allows high-level plans developed and validated in simulation to be deployed directly onto the physical robot without modification.
 \newpage
