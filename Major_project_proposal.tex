@@ -12,6 +12,7 @@
 \usepackage{booktabs}
 \usepackage{makecell}
 \usepackage{amsmath}
+\usepackage{float}
 \graphicspath{{images/}}
 
 \colorlet{punct}{red!60!black}
@@ -261,6 +262,28 @@ For this project, we aim to contribute to this progress by addressing some of th
 
 \subsection{System Overview}
 
+The proposed system is an end-to-end robotic manipulation pipeline that integrates perception, planning, and execution within a unified ROS2-based framework. It enables the robot to transform high-level natural language instructions into executable actions.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/System_Architecture_Overview.png}
+    \caption{High-level system workflow illustrating the flow of visual and language inputs through the pipeline}
+    \label{fig:system_workflow}
+\end{figure}
+
+Figure~\ref{fig:system_workflow} presents the overall workflow of the system. The user provides instructions via natural language, which are processed through an Automatic Speech Recognition (ASR) pipeline. In parallel, the environment is perceived through a vision module performing scene understanding, object detection, segmentation, and grasp synthesis. Both modalities are fused into symbolic representations using large language models (LLMs), enabling task understanding and reasoning.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/ros2_graph_updated.png}
+    \caption{ROS2-based system architecture showing key nodes and their interactions}
+    \label{fig:project_ros2_architecture}
+\end{figure}
+
+As shown in Figure~\ref{fig:project_ros2_architecture}, the system follows a hierarchical planning architecture. The high-level planner decomposes user instructions into subtasks, the medium-level planner maps them to executable robot capabilities, and the low-level executor performs motion execution on the hardware. These components interact closely with perception and user interface nodes within the ROS2 ecosystem.
+
+A human-in-the-loop mechanism allows users to review and confirm generated plans before execution, while an emergency channel ensures immediate interruption of robot actions when required. This design results in a closed-loop system that supports intuitive interaction, reliable planning, and safe execution in dynamic environments.
+
 \subsection{Vision}
 Since the main focus of the current phase is integrating and moving the setup from simulation to actual hardware, we have encountered and addressed critical challenges in our vision and grasping pipelines. Initial hardware testing using GraspNet yielded excessively noisy 6-DOF poses for simple planar objects. Because our tasks primarily require top-down grasping along the $xy$-plane, we temporarily shifted to a deterministic Oriented Bounding Box (OBB) approach due to time constraints. 
 
@@ -355,84 +378,62 @@ The speech module interfaces directly with the ROS2 ecosystem through topic-base
 Overall, the speech subsystem provides a reliable and structured interface for human–robot interaction, enabling safe command execution while maintaining responsiveness and modularity for future extensions.
 \subsection{Planning}
 
-Our recent work in planning focuses on improving the robustness and efficiency of the automatic PDDL generation pipeline used by the high-level planner. Initially, the system relied on a large language model (LLM) to directly generate both the PDDL \texttt{domain} and \texttt{problem} files from a natural language instruction. While this approach demonstrated the feasibility of natural language to PDDL translation, it introduced several practical challenges.
-
-First, the LLM was required to produce syntactically correct PDDL code. Since PDDL is a strict formal language, minor formatting or syntax errors frequently resulted in invalid files that could not be parsed by the downstream deterministic planner. Second, providing detailed templates, examples, and generation guidelines in the system prompt significantly increased the number of input tokens required for each request. This caused frequent limitations when operating within free-tier token constraints. Finally, generating both the \texttt{domain} and \texttt{problem} files entirely through the LLM resulted in unnecessary output tokens, increasing computational overhead and response time.
-
-To address these limitations, we redesigned the PDDL generation process based on our advisor's recommendation to introduce an \textit{intermediate representation} (IR) instead of directly generating PDDL code. In the updated architecture, the LLM produces a structured JSON representation of the task, which is then deterministically converted into a PDDL problem file using templating.
-
-JSON was selected as the intermediate representation because it is highly structured, human-readable, and easily parsed programmatically. Additionally, many modern LLM APIs also support \textit{structured output}, allowing the response schema to be explicitly defined and validated during generation rather than requiring manual parsing of free-form text.
-
-The JSON schema used in our system captures three essential elements of the planning problem: task-specific locations, objects present in the workspace, and the final goal predicates describing the desired world state. To ensure reliable structured outputs, we enforce a JSON schema during generation, which constrains the LLM response to a predefined format. The schema definition is shown in Listing~\ref{lst:ir-schema}.
-
-\begin{lstlisting}[
-    language=json, 
-    caption={JSON schema defining the intermediate representation (IR) used for task specification},
-    label={lst:ir-schema},
-]
-{
-  "type": "object",
-  "properties": {
-    "locations": {
-      "type": "array",
-      "items": { "type": "string" }
-    },
-    "objects": {
-      "type": "array",
-      "items": { "type": "string" }
-    },
-    "goals": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "predicate": { "type": "string" },
-          "args": {
-            "type": "array",
-            "items": { "type": "string" }
-          }
-        },
-        "required": ["predicate", "args"]
-      }
-    }
-  },
-  "required": ["locations", "objects", "goals"]
-}
-\end{lstlisting}
-
-An example instance of the intermediate representation generated by the LLM is shown in Listing~\ref{lst:ir-example}. This structured representation is later parsed by deterministic code to generate the final PDDL problem file.
-
-\begin{lstlisting}[language=json, caption={Example intermediate representation generated by the LLM}, label={lst:ir-example}]
-{
-  "data": {
-    "locations": ["left-of-gear"],
-    "objects": ["gear", "bolt"],
-    "goals": [
-      {
-        "predicate": "gripper-close",
-        "args": []
-      }
-    ]
-  }
-}
-\end{lstlisting}
-
-In this representation, \texttt{locations} corresponds to task-specific spatial positions required for completing the instruction, \texttt{objects} lists the objects present in the workspace, and \texttt{goals} specifies the desired final state using predicates defined in the planning domain. Importantly, the goals list contains only final states rather than intermediate steps, allowing the symbolic planner to determine the sequence of actions required to reach the desired state.
-
-Once the LLM produces the JSON output, a deterministic parsing function extracts the relevant fields and injects them into a predefined PDDL \texttt{problem} template using the Jinja2 templating engine. This ensures that the generated PDDL file always conforms to the correct syntax and structure. Unlike the previous approach, the PDDL \texttt{domain} file is now fixed and manually defined, allowing tighter control over the available predicates and actions. While the current system uses a static domain definition, future work may explore dynamic domain adaptation if more complex tasks are required.
-
-Figure~\ref{fig:pddl-pipeline} illustrates the comparison between the previous and updated PDDL generation pipelines. In the original design, the LLM directly produced full PDDL files. In the revised architecture, the LLM instead produces a structured intermediate representation that is deterministically transformed into the final PDDL problem file.
-
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{images/pddl_generation.png}
-    \caption{Comparison of the original and revised automatic PDDL generation pipelines}
+    \includegraphics[width=\linewidth]{images/ros2_graph_updated.png}
+    \caption{ROS2-based architecture of the hierarchical planning system}
+    \label{fig:planning_ros2}
+\end{figure}
+
+The planning system is implemented as a hierarchical pipeline that decomposes natural language instructions into executable robot actions. As shown in Figure~\ref{fig:planning_ros2}, the architecture separates planning into three layers: high-level reasoning, medium-level task execution, and low-level motion control. This design addresses the challenges of ambiguous language, strict execution constraints, and noisy perception, while enabling modular development and debugging.
+
+At the \textbf{high level}, natural language instructions are translated into structured task plans. Two complementary approaches are supported. In \textbf{LLM-Direct Planning}, a large language model (LLM) directly generates a sequence of subtasks and corresponding actions for downstream execution. In \textbf{Symbolic Planning (PDDL-based)}, the instruction is transformed into a formal planning problem and solved by Fast Downward~\cite{the-fast-downward-planning-system}, producing a logically grounded action sequence. In both approaches, the generated plan is presented to the user before execution so that steps can be confirmed, revised, or rejected through natural language feedback.
+
+Within the PDDL-based branch, we evaluate two problem-generation strategies. In \textbf{Direct Generation}, the LLM generates the full PDDL problem text from the input description. In \textbf{IR-Based Generation}, the model first generates a structured intermediate representation (IR) in JSON format, and a deterministic conversion step then renders the final PDDL problem file.
+
+The JSON IR contains three core elements: \texttt{objects}, \texttt{init} predicates, and \texttt{goals}. This design reduces the burden of producing strict parenthesized PDDL syntax directly while preserving the symbolic content required for planning. It also aligns with API-level structured output constraints, improving parseability and reducing post-processing effort.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{images/pddl_generation.png}
+    \caption{Comparison of direct PDDL generation and the proposed IR-based pipeline}
     \label{fig:pddl-pipeline}
 \end{figure}
 
-Preliminary evaluation indicates that this redesign significantly reduces syntax errors in generated planning problems, since the LLM is no longer responsible for producing raw PDDL code. The new pipeline also reduces both input and output token usage by removing large prompt templates and minimizing generated text. Furthermore, the intermediate JSON representation improves interpretability and debugging, as it provides a clear and structured description of the task before PDDL generation.
+As illustrated in Figure~\ref{fig:pddl-pipeline}, the structured IR is deterministically transformed into a valid PDDL problem file using Jinja2 templating. Object identifiers are mapped into the \texttt{(:objects ...)} block, initial predicates are rendered in \texttt{(:init ...)}, and goal predicates are rendered in \texttt{(:goal (and ...))}. Because this mapping is rule-based, variability is confined to IR generation while syntax rendering remains reproducible. The domain file remains fixed and manually authored, ensuring strict control over available predicates and actions.
 
-Overall, this approach increases reliability, efficiency, and system control while preserving the flexibility of natural language task specification.
+The \textbf{medium-level planner} bridges high-level plans and execution by decomposing subtasks into sequences of callable robot capabilities. Implemented with LangChain~\cite{langchain-docs}, it exposes the \texttt{/medium\_level} action server and treats low-level skills as callable tools, enabling dynamic composition of motion steps according to current task context and feedback.
+
+At the \textbf{low level}, the \texttt{low\_level\_planner\_executor} node executes motion commands using constrained Cartesian path planning and joint-space safety constraints to ensure smooth and predictable operation. The node provides dedicated action servers including \texttt{/plan\_cartesian\_relative}, \texttt{/get\_current\_pose}, \texttt{/get\_joint\_angles}, \texttt{/set\_joint\_angles}, and \texttt{/plan\_complex\_cartesian\_steps}. Safety is reinforced through subscription to an \texttt{/emergency} topic that can immediately interrupt motion when a critical keyword is detected.
+
+The planning stack is tightly integrated with perception and speech. The \texttt{vision} node is available as a reasoning source for high- and medium-level planners, and the \texttt{asr} node publishes recognized commands to \texttt{/transcript} after activation-keyword detection, supporting event-driven execution flow across the hierarchy.
+
+Overall, the hierarchical and hybrid planning framework enables reliable transformation of natural language instructions into executable robot behavior. The combined architecture preserves flexibility through language-conditioned planning, improves formal reliability through IR-based symbolic generation, and maintains safety and modularity through layered execution and emergency interruption handling.
+
+\subsection{Simulation}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/gazebo_setup.png}
+\caption{UR5 with Robotiq 2F-85 gripper and depth camera in Gazebo simulation environment}
+\label{fig:simulation-gazebo-setup}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{images/ros2_sim_graph_full.png}
+\caption{ROS2 graph for the Gazebo simulation environment}
+\label{fig:simulation-ros2-graph}
+\end{figure}
+
+The simulation environment is implemented in Gazebo Classic and provides a complete, fully integrated setup for testing perception, motion planning, and gripper control. The system models the UR5 robotic arm equipped with a Robotiq 2F-85 gripper and a downward-facing depth camera, together with a table environment and a collection of engineering objects. All components are interfaced through ROS2, enabling real-time communication and execution of motion and perception tasks within a unified simulation framework.
+
+At the \textbf{robot and sensor level}, the UR5, gripper, and camera are simulated using standard Gazebo ROS2 interfaces. The robot exposes joint states, controllers, and transforms exactly as in a physical setup, while the RGB-D camera publishes depth and color images that integrate directly with the perception pipeline. Using \texttt{cv\_bridge}~\cite{cv_bridge}, raw Gazebo image messages are converted into OpenCV-compatible formats, allowing the vision node to operate identically to its real-world counterpart.
+
+The simulation world includes several engineered parts used for testing perception-driven tasks. While some models contain simplified collision meshes, making precise grasping less reliable, the environment is sufficient for validating perception, planning, and trajectory execution. In line with guidance from our advisor, detailed grasp evaluation will be carried out on the real hardware, while Gazebo is used primarily for motion, planning, and system integration testing.
+
+Overall, the Gazebo Classic simulation delivers a robust and realistic platform for evaluating the majority of our robotic pipeline. The ROS2 graph in Figure~\ref{fig:simulation-ros2-graph} highlights the modular structure that supports coordinated operation of all simulated components.
+
 
 \subsection{Hardware}
 
@@ -602,10 +603,10 @@ The current progress is on schedule. Having transitioned from simulation to hard
 
 Progress is slightly behind the planned schedule, though not significantly impacting overall project completion. The text-to-speech implementation has been completed using the Tacotron2 model. However, the TTS module is not yet fully integrated into the ROS2 system architecture. The TTS feature itself is considered a "nice to have" enhancement for user interaction, and the current development focus remains on completing the hardware setup, stabilizing the perception pipeline, and integrating the core planning and execution modules. Effort is directed toward migrating the overall system from simulation to physical hardware, with TTS integration deferred to later phases if time permits.
 
-\subsubsection{Planning Process}
-The current progress is on schedule. Based on testing results, the automatic PDDL generation pipeline has been improved by introducing a structured intermediate representation (IR) instead of directly generating PDDL code. This change has reduced syntax errors, improved interpretability, and lowered token usage.
+\subsubsection{Planning Algorithm}
+The project is completed on time according to the schedule. All tasks listed in the Initial Timeline for the Planning Algorithm section have been completed: system integration with hardware, planning algorithm enhancement, testing and troubleshooting, and evaluation and benchmarking. In particular, the automatic PDDL generation pipeline was improved by introducing a structured intermediate representation (IR) instead of directly generating PDDL code, which reduced syntax errors, improved interpretability, and lowered token usage.
 
-Future work will focus on further refining the system and benchmarking the planning pipeline across different task scenarios to evaluate robustness and efficiency.
+With these milestones finished, the planning pipeline is now in a stable state, and future work can focus on refining the system further and benchmarking it across more diverse task scenarios to evaluate robustness and efficiency.
 
 
 \subsubsection{Interface with Robot Arm}
@@ -1002,6 +1003,109 @@ The roles and duties of this project revolve around the four main features. Each
 \newpage
 \section{Results}
 
+\subsection{Overall System}
+
+Overall system performance was evaluated through end-to-end benchmarking across six representative manipulation scenarios. Each scenario was executed using four settings: \textbf{LLM-Direct}, \textbf{PDDL-Direct}, \textbf{IR-Based PDDL}, and \textbf{Manual} execution. For each automated approach, every scenario was repeated five times, and planning and execution times were recorded separately. For the manual setting, each scenario was performed by five participants (three experts familiar with the system and two non-experts). Non-experts required slightly longer time on average, but the difference was not statistically significant. For manual execution, only total completion time is reported because planning and execution cannot be cleanly separated in human operation.
+
+The six scenarios were designed to cover distinct system capabilities:
+\begin{enumerate}
+    \item Basic handover of a single object in a crowded space.
+    \item Handover of a specific object within a duplicate-object group.
+    \item Clarification behavior under ambiguous user instructions.
+    \item Identification and handover based on positional reference.
+    \item Identification and handover based on color reference.
+    \item Placement of an object at a specified position relative to another object.
+\end{enumerate}
+
+\begin{table}[h]
+\centering
+\small
+\caption{Planning time (seconds) across scenarios.}
+\label{tab:overall-planning-time}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Scenario} & \textbf{LLM-Direct} & \textbf{PDDL-Direct} & \textbf{IR-Based PDDL} \\
+\midrule
+1 & 3.642 & 4.135 & 4.206 \\
+2 & 7.500 & 9.410 & 8.396 \\
+3 & 5.274 & 6.6725 & 5.854 \\
+4 & 11.4775 & 13.5367 & 11.818 \\
+5 & 5.104 & 6.042 & 5.272 \\
+6 & 5.780 & 6.460 & 6.142 \\
+\midrule
+\textbf{Average} & \textbf{6.460} & \textbf{7.710} & \textbf{6.950} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\caption{Execution time (seconds) across scenarios.}
+\label{tab:overall-execution-time}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Scenario} & \textbf{LLM-Direct} & \textbf{PDDL-Direct} & \textbf{IR-Based PDDL} & \textbf{Manual (Total)} \\
+\midrule
+1 & 58.842 & 57.615 & 58.260 & 1.688 \\
+2 & 56.860 & 56.437 & 56.060 & 1.522 \\
+3 & 46.282 & 49.2225 & 44.468 & 3.608 \\
+4 & 49.240 & 50.8267 & 50.250 & 1.706 \\
+5 & 58.750 & 59.744 & 59.648 & 1.204 \\
+6 & 62.605 & 62.595 & 62.762 & 1.438 \\
+\midrule
+\textbf{Average} & \textbf{55.430} & \textbf{56.000} & \textbf{55.240} & \textbf{1.860} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\caption{Success rate (\%) across scenarios.}
+\label{tab:overall-success-rate}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Scenario} & \textbf{LLM-Direct} & \textbf{PDDL-Direct} & \textbf{IR-Based PDDL} & \textbf{Manual} \\
+\midrule
+1 & 100 & 80 & 100 & 100 \\
+2 & 60 & 60 & 100 & 100 \\
+3 & 100 & 80 & 100 & 100 \\
+4 & 80 & 60 & 100 & 100 \\
+5 & 100 & 100 & 100 & 100 \\
+6 & 40 & 40 & 100 & 100 \\
+\midrule
+\textbf{Average} & \textbf{80} & \textbf{70} & \textbf{100} & \textbf{100} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\caption{Combined averages from planning time, execution time, and success rate (green = best, red = worst).}
+\label{tab:overall-combined-averages}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Metric} & \textbf{LLM-Direct} & \textbf{PDDL-Direct} & \textbf{IR-Based PDDL} & \textbf{Manual} \\
+\midrule
+Planning Time (s) & \textcolor{green!50!black}{\textbf{6.460}} & \textcolor{red!70!black}{\textbf{7.710}} & 6.950 & N/A \\
+Execution Time (s) & 55.430 & \textcolor{red!70!black}{\textbf{56.000}} & 55.240 & \textcolor{green!50!black}{\textbf{1.860}} \\
+Success Rate (\%) & 80 & \textcolor{red!70!black}{\textbf{70}} & \textcolor{green!50!black}{\textbf{100}} & \textcolor{green!50!black}{\textbf{100}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Tables~\ref{tab:overall-planning-time}--\ref{tab:overall-success-rate} summarize system performance across planning time, execution time, and success rate, respectively. Table~\ref{tab:overall-combined-averages} consolidates the average values from these three tables for quick comparison.
+
+The results indicate that \textbf{IR-Based PDDL} is the most reliable automated approach, achieving a perfect success rate (100\%) across all scenarios. In contrast, LLM-Direct and PDDL-Direct are less consistent, with average success rates of 80\% and 70\%, respectively. Both approaches degrade substantially in Scenario 6, where each achieves only 40\% success, suggesting that the structured intermediate representation improves robustness in more constrained or failure-prone cases.
+
+Importantly, the failure modes of these two approaches differ. For \textbf{LLM-Direct}, failures primarily occur during physical execution, where the action sequences generated by the model cannot be reliably executed by the robot. These errors arise despite producing plausible high-level plans, indicating a mismatch between generated actions and the robot's execution constraints. In contrast, failures in \textbf{PDDL-Direct} are more often due to syntax or parsing errors in the generated PDDL, which prevent successful planning altogether. This distinction highlights that LLM-Direct suffers from execution-level unreliability, whereas PDDL-Direct is more sensitive to formal correctness.
+
+In terms of efficiency, LLM-Direct has the lowest average planning time among automated methods (6.460\,s), followed by IR-Based PDDL (6.950\,s) and PDDL-Direct (7.710\,s), as shown in Table~\ref{tab:overall-planning-time}. However, execution time remains similar across all automated methods (approximately 55--56\,s), as shown in Table~\ref{tab:overall-execution-time}, indicating that physical robot execution dominates end-to-end latency more than planner computation. The additional planning overhead of IR-Based PDDL relative to LLM-Direct is modest (approximately 0.49\,s) while providing a substantial reliability gain.
+
+Compared with automated pipelines, manual operation is significantly faster, with an average total time of 1.860\,s and 100\% success. This corresponds to roughly a 30$\times$ speed gap compared to automated execution time. Overall, the benchmark highlights a clear trade-off: IR-Based PDDL offers the best reliability for autonomous operation, while future improvements should prioritize reducing execution latency to close the gap with human-level efficiency.
+
 \subsection{Vision}
 
 Vision pipeline was evaluated in simulation using Gazebo across 5 distinct worlds, each containing 5 objects. The evaluation focused on object detection, classification, grasp pose estimation, and scene understanding, as well as the accuracy of pixel-to-real-world coordinate conversion. The testing procedure for each module is as follows:
@@ -1155,111 +1259,81 @@ Overall, these findings confirm that the ASR system accurately interprets natura
 
 \subsection{Planning}
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=\linewidth]{images/ros2_graph_updated.png}
-\caption{Final ROS2 Graph for the Hierarchical Planning System}
-\label{fig:planning-result-ros2-graph}
+Planning performance was evaluated on Blocksworld tasks using the Blocksworld Image Reasoning Dataset (BIRD)~\cite{bird}. From this dataset, we randomly sampled 155 scenarios for evaluation. Each task consists of an initial state (provided as an image) and a natural-language goal. A vision-language model first converts the image into a textual state description, which is concatenated with the goal instruction and passed to the planning pipeline.
+
+All three approaches were evaluated under the same experimental setup to ensure a fair comparison. The language model used for generation in all settings is \texttt{gpt-oss:20b}, and the vision-language model used for image-to-text conversion is \texttt{qwen3-vl:8b}. Both models are deployed locally using Ollama. For the JSON and PDDL settings, the generated problem is solved using Fast Downward with a fixed domain file~\cite{the-fast-downward-planning-system}.
+
+Figure~\ref{fig:planning-benchmark-flow} shows the benchmarking flow used to compare the three planning settings: direct LLM generation, direct PDDL generation, and IR-based generation.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/pddl_generation_benchmark.png}
+    \caption{Benchmarking flow for planning approaches: LLM-direct, direct PDDL generation, and IR-based generation.}
+    \label{fig:planning-benchmark-flow}
 \end{figure}
 
-The final planning system is implemented as a fully integrated hierarchical framework that connects high-level reasoning, task decomposition, and low-level motion control within the ROS2 environment. It provides an end-to-end pipeline that enables the robot to interpret natural language instructions, generate structured task plans, and execute precise physical motions safely and efficiently.
+We evaluate three main aspects of planning performance. \textit{Planning Success Rate} measures whether the generated representation leads to a valid plan that achieves the goal. \textit{Syntactic Validity} indicates whether the generated PDDL can be successfully parsed by the planner. \textit{Efficiency} is measured through token usage and runtime, where token counts approximate generation cost and elapsed time captures end-to-end latency. For symbolic approaches, we additionally evaluate \textit{Symbolic Accuracy} using precision, recall, and the balanced F-score $F_{pd1}$:
+\[
+F_{pd1}=\frac{2PR}{P+R}
+\]
+where precision $P$ measures the correctness of generated symbols and recall $R$ measures coverage of ground-truth symbols~\cite{planowl}.
 
-At the \textbf{low level}, the \texttt{low\_level\_planner\_executor} node serves as the motion control core. It performs path planning and trajectory execution using Cartesian motion enforcement and joint-space constraints to ensure predictable and smooth operation. The node provides several dedicated action servers, including \texttt{/plan\_cartesian\_relative}, \texttt{/get\_current\_pose}, \texttt{/set\_joint\_angles}, and \texttt{/plan\_complex\_cartesian\_steps}, enabling fine-grained control and feedback of the robot’s kinematic state.
-
-The \textbf{medium-level planner} acts as an intermediary between symbolic reasoning and motion execution. Implemented with the LangChain framework~\cite{langchain-docs}, it treats low-level planning capabilities as callable “tools,” allowing dynamic composition of motion sequences through the \texttt{/medium\_level} action server. This design enables flexible execution of subtasks generated by the higher-level planners while maintaining direct communication with perception and speech modules.
-
-At the \textbf{high level}, two complementary planning paradigms are supported:
-\begin{enumerate}
-\item \textbf{LLM-Direct Planning:} An AI agent interprets natural language commands and directly produces a structured sequence of subtasks for execution.
-\item \textbf{Symbolic (PDDL-Based) Planning:} Commands are converted into PDDL problem and domain definitions, which are solved by the Fast Downward planner~\cite{the-fast-downward-planning-system} to yield a formal action plan.
-\end{enumerate}
-Both methods produce executable plans that are displayed to the user for review and confirmation. The LLM-Direct approach allows for greater flexibility and responsiveness, while the PDDL-based approach provides more explicit logical structure and interpretability.
-
-The planning architecture integrates closely with perception and speech. The \texttt{vision} node provides environmental and object-level context for reasoning, and the \texttt{asr} node publishes transcribed commands to a topic, facilitating event-driven interaction. Safety is handled through an emergency protocol in which the \texttt{low\_level\_planner\_executor} subscribes to an \texttt{/emergency} topic capable of interrupting motion instantly upon detection of a critical keyword.
-
-Overall, the planning subsystem embodies a coherent multi-layered design that connects high-level cognitive planning with deterministic motion execution. It enables the robot to autonomously interpret, plan, and act on user instructions, demonstrating the viability of combining language-driven AI planning with classical motion control in a modular and extensible ROS2-based framework.
-
-\subsubsection{Experimentation and Evaluation}
-
-\begin{table}[h!]
+\begin{table}[H]
 \centering
-\caption{Comparison of LLM-Direct and PDDL-Based Planning Approaches}
-\label{tab:planning-eval}
-\begin{tabular}{lccc}
-\hline
-\textbf{Metric} & \textbf{LLM-Direct} & \textbf{PDDL-Based} \\
-\hline
-Execution Time per Step (s) & $7.20 \pm 0.25$ & $6.83 \pm 0.27$ \\
-Success Rate (\%) & $100.0$ & $91.0$ \\
-LLM Requests per Step & $2.0$ & $2.0$ \\
-Tokens per Step & $\approx 3{,}000$ & $\approx 3{,}000$ \\
-\hline
+\small
+\caption{Planning success on BIRD (155 sampled scenarios).}
+\label{tab:planning-performance}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Approach} & \textbf{Plan Found (\%)} & \textbf{Syntactically Valid (\%)} \\
+\midrule
+JSON & \textbf{\textcolor{green}{65.8}} & \textbf{\textcolor{green}{97.1}} \\
+PDDL & 45.2 & \textbf{\textcolor{red}{93.5}} \\
+LLM & \textbf{\textcolor{red}{39.4}} & N/A \\
+\bottomrule
 \end{tabular}
-\begin{flushleft}
-\footnotesize{$^{*}$Statistically significant at $\alpha = 0.05$.}
-\end{flushleft}
 \end{table}
 
-The planning system was evaluated using a set of 13 task instructions of varying complexity and step counts, each executed five times for statistical reliability. The task set included both simple commands (e.g., “Open the gripper,” “Move the arm to the home position”) and multi-step instructions (e.g., “Close the gripper, move up, and then open it again,” “Perform a waving motion from left to right”).
-
-Execution time was measured programmatically from the moment the \texttt{high\_level\_planner} node received a command until it returned a success or failure response. To allow for fair comparison across tasks, the total time was divided by the number of steps in each task, yielding an average execution time per step. Both planning approaches utilized the Gemini-2.5-Flash LLM for reasoning and subtask generation.
-
-The results, summarized in Table~\ref{tab:planning-eval}, show that the PDDL-Based approach achieved a slightly faster average execution time per step ($M = 6.83$, $SD = 1.62$) compared to the LLM-Direct approach ($M = 7.20$, $SD = 1.51$). The difference was statistically significant ($p = 0.049$) but small in magnitude ($\Delta M = 0.37$ s), suggesting that the practical impact of this time difference is negligible.
-
-In terms of reliability, the LLM-Direct method achieved a 100\% success rate, while the PDDL-Based method reached 91\%. This difference was statistically insignificant ($p > 0.05$) but indicates a robustness advantage for the direct LLM-driven planner. We believe that the lower reliability of the PDDL-based approach was primarily due to occasional errors in LLM-generated PDDL syntax, which can be mitigated through deterministic generation and schema enforcement in future iterations.
-
-To further evaluate generalization, both planners were tested with higher-level, abstract commands such as “Get the robot ready to work,” “Return to start,” and “Prepare for gripping.” In these cases, the LLM-Direct planner demonstrated significantly higher success rates, as it could interpret and decompose abstract language more flexibly than the symbolic PDDL pipeline.
-
-Since both methods rely on large language models, computational overhead was also measured. On average, each planning step involved approximately two API requests and around 3,000 input tokens. These values were consistent across both approaches, indicating similar computational cost per step.
-
-Overall, the evaluation demonstrates that both approaches achieve high task completion rates and efficient execution times, with the LLM-Direct planner excelling in generalization and interpretability, while the PDDL-based method offers more structured symbolic reasoning and scalability for well-defined tasks.
-
-\subsection{Simulation}
-
-\begin{figure}[h]
+\begin{table}[H]
 \centering
-\includegraphics[width=\linewidth]{images/gazebo_setup.png}
-\caption{UR5 with Robotiq 2F-85 gripper and depth camera in Gazebo simulation environment}
-\label{fig:simulation-gazebo-setup}
-\end{figure}
+\small
+\caption{Efficiency comparison on BIRD (155 sampled scenarios).}
+\label{tab:planning-efficiency}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Approach} & \textbf{Input Tokens} & \textbf{Output Tokens} & \textbf{Mean Time (s)} \\
+\midrule
+JSON & \textbf{\textcolor{green}{624.89}} & 51.23 & 54.30 \\
+PDDL & \textbf{\textcolor{red}{689.70}} & \textbf{\textcolor{red}{411.46}} & \textbf{\textcolor{red}{54.97}} \\
+LLM & 646.96 & \textbf{\textcolor{green}{31.12}} & \textbf{\textcolor{green}{44.39}} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\begin{figure}[h]
+\begin{table}[H]
 \centering
-\includegraphics[width=\linewidth]{images/ros2_sim_graph_full.png}
-\caption{ROS2 graph for the Gazebo simulation environment}
-\label{fig:simulation-ros2-graph}
-\end{figure}
+\caption{Symbolic accuracy comparison using $F_{pd1}$.}
+\label{tab:planning-f1-results}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Approach} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
+\midrule
+PDDL & \textbf{\textcolor{red}{0.3730}} & \textbf{\textcolor{red}{0.3837}} & \textbf{\textcolor{red}{0.3756}} \\
+JSON & \textbf{\textcolor{green}{0.5784}} & \textbf{\textcolor{green}{0.5765}} & \textbf{\textcolor{green}{0.5732}} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-The simulation environment is implemented in Gazebo Classic and provides a complete, fully integrated setup for testing perception, motion planning, and gripper control. The system models the UR5 robotic arm equipped with a Robotiq 2F-85 gripper and a downward-facing depth camera, together with a table environment and a collection of engineering objects. All components are interfaced through ROS2, enabling real-time communication and execution of motion and perception tasks within a unified simulation framework.
+The results show that the JSON-based (IR) approach achieves the strongest overall performance across all evaluated dimensions. It attains the highest planning success rate (65.8\%), substantially outperforming both direct PDDL generation (45.2\%) and LLM-based plan generation (39.4\%). It also achieves the highest symbolic accuracy, with an $F_{pd1}$ score of 0.5732.
 
-At the \textbf{robot and sensor level}, the UR5, gripper, and camera are simulated using standard Gazebo ROS2 interfaces. The robot exposes joint states, controllers, and transforms exactly as in a physical setup, while the RGB-D camera publishes depth and color images that integrate directly with the perception pipeline. Using \texttt{cv\_bridge}~\cite{cv_bridge}, raw Gazebo image messages are converted into OpenCV-compatible formats, allowing the vision node to operate identically to its real-world counterpart.
+In terms of efficiency, the LLM-based approach is the fastest and most lightweight, with the lowest mean runtime (44.39\,s) and output token usage (31.12 tokens). However, this efficiency comes at the cost of reduced planning success and the absence of explicit symbolic representations, making direct comparison in terms of syntactic validity and symbolic accuracy not applicable.
 
-The simulation world includes several engineered parts used for testing perception-driven tasks. While some models contain simplified collision meshes, making precise grasping less reliable, the environment is sufficient for validating perception, planning, and trajectory execution. In line with guidance from our advisor, detailed grasp evaluation will be carried out on the real hardware, while Gazebo is used primarily for motion, planning, and system integration testing.
+Comparing the two symbolic approaches, IR-based generation consistently outperforms direct PDDL generation. It produces significantly fewer output tokens (51.23 vs. 411.46), indicating that the model avoids generating verbose formal syntax and instead focuses on structured semantic content. Despite this reduction, runtime remains comparable, suggesting that improvements are driven primarily by output quality rather than computational speed.
 
-Overall, the Gazebo Classic simulation delivers a robust and realistic platform for evaluating the majority of our robotic pipeline. The ROS2 graph in Figure~\ref{fig:simulation-ros2-graph} highlights the modular structure that supports coordinated operation of all simulated components.
-
-\subsection{Hardware}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\linewidth]{images/sim_vs_real.png}
-\caption{Comparison between Simulation (Gazebo) and Real Hardware Setup (UR3e with Robotiq HandE gripper at Chulapat 14 Robotics Lab)}
-\label{fig:hardware-result-sim-vs-real}
-\end{figure}
-
-The final hardware setup provides a fully functional physical execution environment that mirrors the structure and control interfaces used in simulation. The system is built around the \textbf{UR3e robot arm} equipped with a \textbf{Robotiq HandE} gripper, deployed at the Chulapat 14 Robotics Lab. The robot is integrated with the project’s software stack through the official \texttt{ur\_robot\_driver} ROS2 interface~\cite{ur_ros2_driver}, enabling direct execution of MoveIt2-generated trajectories on the real robot.
-
-At the communication level, the workstation is configured to run \textbf{Ubuntu 22.04 natively} to ensure stable, low-latency connectivity with the UR control box. A dedicated Ethernet connection is used, with the network interface assigned to the address \texttt{10.10.0.5} as required by the UR External Control URCap. Once connected, the robot is set to External Control mode using the teach pendant, allowing ROS2 to stream motion commands directly to the arm.
-
-The hardware execution pipeline maintains the same \textbf{action and service interfaces} used in simulation, enabling a consistent programming model across both environments. Through the \texttt{ur\_moveit\_config} package, MoveIt2 handles kinematic planning, trajectory generation, and trajectory execution on the physical robot without any modification to planning or control nodes. This uniformity allows the system to seamlessly transition between simulated and real execution, while ensuring reproducibility of motion behavior.
-
-To support this dual-environment operation, the main control node automatically configures key parameters, such as the MoveIt2 move group name and the \texttt{use\_sim\_time} setting, based on whether the robot is operating in Gazebo or on real hardware. This allows the same high-level plan to be executed identically in both environments, and initial verification has confirmed that planned trajectories generated in simulation transfer accurately to the real arm.
-
-Overall, the hardware system establishes a robust bridge between the simulated development workflow and the real robotic platform. It provides reliable, responsive control of the UR3e, preserves interface compatibility with the simulation pipeline, and enables the project to validate real-world robot behavior under the same architecture used for virtual testing.
-
+Both structured approaches maintain high syntactic validity, with JSON at 97.1\% and PDDL at 93.5\%. This indicates that LLMs are generally capable of producing well-formed structured outputs. However, the higher planning success and symbolic accuracy of the IR-based approach suggest that explicitly separating semantic representation from syntactic realization leads to more reliable downstream planning.
 
 \newpage
-\section{Limitations and Future Plans}
+\section{Limitations and Future Work}
 
 \subsection{Vision}
 
@@ -1282,27 +1356,11 @@ In addition, the current evaluation of the ASR system was conducted using expert
 
 For future development, the ASR system will be extended to support more flexible and natural language interaction, including multiple activation and termination phrases. A feedback mechanism will also be introduced, enabling the robot to verbally confirm received commands and notify users upon task completion. This interactive feedback loop is expected to improve user awareness, communication transparency, and overall usability in real-world human--robot collaboration.
 \subsection{Planning}
-Despite the successful implementation and evaluation of the hierarchical planning system, several limitations remain that present opportunities for improvement in future development.
+Despite the successful implementation of the planning pipeline, several limitations remain. The most significant challenge lies in generating semantically correct and task-consistent PDDL problem files from natural language and perception outputs. In the current pipeline, the \texttt{domain.pddl} file is fixed and manually authored, while the \texttt{problem.pddl} file is produced through an IR-to-template conversion flow. This design largely prevents syntax failures, but errors can still occur at the semantic level, such as missing objects, incomplete initial predicates, or incorrect goal conditions.
 
-\textbf{1. Limitations of the PDDL-Based Approach.}
-The most significant challenge lies in generating syntactically correct and logically consistent PDDL (Planning Domain Definition Language) files. At present, both the \texttt{domain.pddl} and \texttt{problem.pddl} files are generated entirely by a large language model. While this enables flexibility in interpreting natural language commands, it also introduces errors such as inconsistent predicates, missing type declarations, and ill-formed syntax. These issues reduce the reliability of symbolic planning, as even minor syntax errors can cause plan generation to fail.
+The results also show that the intermediate representation is manually designed, which requires domain knowledge to define an appropriate schema. Although the structured JSON format improves reliability and symbolic accuracy, it is still tailored to the current task family and does not yet capture the diversity of more complex planning settings. In addition, the evaluation in this project is limited to the Blocksworld domain, which remains relatively constrained.
 
-To address this, the future plan involves reducing the portion of the PDDL specification that depends on the LLM. The set of valid actions and predicates will be manually defined and validated, ensuring correctness and interpretability. Dynamic elements, such as the current state of the robot and environment, will instead be generated deterministically from live ROS2 topics and service responses. This hybrid approach aims to retain the flexibility of LLM-based interpretation while ensuring structural and syntactic integrity in the resulting PDDL files.
-
-\textbf{2. Limited Integration with Perception.}
-The current system architecture includes a dedicated \texttt{vision} node capable of providing object detection, classification, and pose estimation services. However, full integration between this perception module and the planning system has not yet been achieved. As a result, the system has primarily been evaluated on motion- and manipulation-centric tasks that do not depend on visual context.
-
-The next phase of development will focus on completing this integration, allowing the planners to reason over perceptual information and adapt plans dynamically based on the visual state of the environment. This will enable testing and evaluation on more complex, perception-dependent instructions—such as identifying, approaching, and manipulating specific objects—which more closely resemble real-world autonomous task execution scenarios.
-
-\textbf{3. Testing with Higher-Level and Abstract Commands.}
-Although preliminary experiments with abstract language commands have been conducted, broader testing is still required to evaluate robustness and adaptability. Future work will involve systematically benchmarking both the LLM-Direct and PDDL-Based approaches on abstract, multi-step, and perception-based instructions to identify the limits of current reasoning capabilities and improve high-level plan generalization.
-
-\textbf{4. Fail-Safe Mechanism.}
-Currently, the system implements an emergency stop mechanism via a predefined keyword. When the emergency stop word is detected, the robot halts all actions and remains locked in its current position until an “okay” word is received. While this prevents immediate harm, it is not fail-safe: the robot may be stopped in potentially unsafe locations, such as near obstacles or in awkward arm configurations.
-
-The planned improvement is to implement a proper fail-safe routine. In the event of an emergency stop, the robot will autonomously move to a predefined safe position (e.g., the home position) before halting, ensuring that the system is in a known, secure state. This enhancement will increase overall safety and reliability, particularly in dynamic or unstructured environments.
-
-In summary, future work will prioritize enhancing the determinism and correctness of the symbolic planning pipeline, completing the integration of the vision system, extending task complexity in experimental evaluations, and implementing robust fail-safe procedures to improve operational safety.
+Future work should therefore expand beyond Blocksworld to richer manipulation domains with larger predicate sets, partial observability, and longer-horizon tasks. A particularly useful direction is to compare alternative intermediate representations and output formats, including TOON, Markdown, XML, and related structured encodings, to measure their relative efficiency in token usage and output accuracy. Beyond representation choice, future studies should investigate output evaluation and feedback loops, stronger prompt engineering, and multi-agent approaches to improve robustness, controllability, and downstream planning quality.
 
 \subsection{Simulation}
 
