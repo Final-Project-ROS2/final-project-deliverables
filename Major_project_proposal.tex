@@ -137,6 +137,7 @@ Neuro-Symbolic Artificial Intelligence (NSAI) is an approach in robot manipulati
 
 \newpage
 \section{Objectives}
+\label{sec: objectives}
 Drawing from the prior examination of robotic manipulation through natural language command systems, there are multiple challenges and limitations, such as generalization, lack of interpretability, and handling complexity, that pose room for improvements. Thus, the project aims to tackle and explore these challenges and limitations by building a prototype of a personal AI assistant with a robotic arm that can:
 \begin{enumerate}
   \item Understand natural language voice commands
@@ -161,7 +162,7 @@ Drawing from the prior examination of robotic manipulation through natural langu
 
 To demonstrate successful end-to-end handover, the system must integrate language understanding, symbolic planning, perception, and grasping into a reliable pipeline. Recent studies show that robot-to-human tool handover can reach around 92.5\% success in simulation for construction tools~\cite{iaarc2025_handover}, while sim-to-real grasping frameworks report 90--97\% success depending on object familiarity~\cite{mogpe2022},\cite{grasping2023}. Performance is typically lower for novel or cluttered settings, highlighting the importance of generalization.  
 
-Timing benchmarks suggest that simple object handovers can be completed in 8--10 seconds~\cite{handover2024_fast}, though more complex engineering tools may reasonably require up to 15 seconds. Based on these findings, this project defines its main performance goal as achieving \textbf{$\geq90\%$ success over 60–80 trials}, with \textbf{completion within 15 seconds} and \textbf{minimal disturbance} $\leq\SI{2}{\centi\meter}$ to non-target tools.
+Timing benchmarks suggest that simple object handovers can be completed in 8--10 seconds~\cite{handover2024_fast}, though more complex engineering tools may reasonably require up to 15 seconds. Based on these findings, this project defines its main performance goal as achieving \textbf{$\geq90\%$ success over 30 trials}, with \textbf{completion within 15 seconds} and \textbf{minimal disturbance} $\leq\SI{2}{\centi\meter}$ to non-target tools.
 
 
 \end{enumerate}
@@ -1097,7 +1098,7 @@ The roles and duties of this project revolve around the four main features. Each
 
 \subsection{Overall System}
 
-Overall system performance was evaluated through end-to-end benchmarking across six representative manipulation scenarios. Each scenario was executed using four settings: \textbf{LLM-Direct}, \textbf{PDDL-Direct}, \textbf{IR-Based PDDL}, and \textbf{Manual} execution. For each automated approach, every scenario was repeated five times, and planning and execution times were recorded separately. For the manual setting, each scenario was performed by five participants (three experts familiar with the system and two non-experts). Non-experts required slightly longer time on average, but the difference was not statistically significant. For manual execution, only total completion time is reported because planning and execution cannot be cleanly separated in human operation.
+Overall system performance was evaluated through end-to-end benchmarking across six representative manipulation scenarios, using the KPI defined at the end of the \textit{Evaluation Metrics and Benchmarks} subsection in Section~\ref{sec: objectives}: success rate over 30 trials, completion time within 15 seconds, and minimal disturbance of non-target objects below 2~cm. Each scenario was executed using four settings: \textbf{LLM-Direct}, \textbf{PDDL-Direct}, \textbf{IR-Based PDDL}, and \textbf{Manual} execution. For each automated approach, every scenario was repeated five times, and planning and execution times were recorded separately. During success-rate evaluation, a trial was counted as a failure if the task disturbed any non-target object by more than 2~cm. For the manual setting, each scenario was performed by five participants (three experts familiar with the system and two non-experts). Non-experts required slightly longer time on average, but the difference was not statistically significant. For manual execution, only total completion time is reported because planning and execution cannot be cleanly separated in human operation.
 
 The six scenarios were designed to cover distinct system capabilities:
 \begin{enumerate}
@@ -1139,14 +1140,14 @@ The six scenarios were designed to cover distinct system capabilities:
 \toprule
 \textbf{Scenario} & \textbf{LLM-Direct} & \textbf{PDDL-Direct} & \textbf{IR-Based PDDL} & \textbf{Manual (Total)} \\
 \midrule
-1 & 58.842 & 57.615 & 58.260 & 1.688 \\
-2 & 56.860 & 56.437 & 56.060 & 1.522 \\
-3 & 46.282 & 49.2225 & 44.468 & 3.608 \\
-4 & 49.240 & 50.8267 & 50.250 & 1.706 \\
-5 & 58.750 & 59.744 & 59.648 & 1.204 \\
-6 & 62.605 & 62.595 & 62.762 & 1.438 \\
+1 & 40.947 & 37.265 & 36.181 & 1.688 \\
+2 & 47.794 & 43.308 & 42.735 & 1.522 \\
+3 & 35.239 & 31.975 & 32.095 & 3.608 \\
+4 & 42.834 & 37.332 & 37.619 & 1.706 \\
+5 & 43.483 & 40.074 & 38.143 & 1.204 \\
+6 & 62.605 & 57.028 & 54.623 & 1.438 \\
 \midrule
-\textbf{Average} & \textbf{55.430} & \textbf{56.000} & \textbf{55.240} & \textbf{1.860} \\
+\textbf{Average} & \textbf{45.484} & \textbf{41.180} & \textbf{40.232} & \textbf{1.860} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1182,7 +1183,7 @@ The six scenarios were designed to cover distinct system capabilities:
 \textbf{Metric} & \textbf{LLM-Direct} & \textbf{PDDL-Direct} & \textbf{IR-Based PDDL} & \textbf{Manual} \\
 \midrule
 Planning Time (s) & \textcolor{green!50!black}{\textbf{6.460}} & \textcolor{red!70!black}{\textbf{7.710}} & 6.950 & N/A \\
-Execution Time (s) & 55.430 & \textcolor{red!70!black}{\textbf{56.000}} & 55.240 & \textcolor{green!50!black}{\textbf{1.860}} \\
+Execution Time (s) & \textcolor{red!70!black!}{\textbf45.484} & 41.180 & 40.232 & \textcolor{green!50!black}{\textbf{1.860}} \\
 Success Rate (\%) & 80 & \textcolor{red!70!black}{\textbf{70}} & \textcolor{green!50!black}{\textbf{100}} & \textcolor{green!50!black}{\textbf{100}} \\
 \bottomrule
 \end{tabular}
@@ -1190,11 +1191,11 @@ Success Rate (\%) & 80 & \textcolor{red!70!black}{\textbf{70}} & \textcolor{gree
 
 Tables~\ref{tab:overall-planning-time}--\ref{tab:overall-success-rate} summarize system performance across planning time, execution time, and success rate, respectively. Table~\ref{tab:overall-combined-averages} consolidates the average values from these three tables for quick comparison.
 
-The results indicate that \textbf{IR-Based PDDL} is the most reliable automated approach, achieving a perfect success rate (100\%) across all scenarios. In contrast, LLM-Direct and PDDL-Direct are less consistent, with average success rates of 80\% and 70\%, respectively. Both approaches degrade substantially in Scenario 6, where each achieves only 40\% success, suggesting that the structured intermediate representation improves robustness in more constrained or failure-prone cases.
+The results indicate that \textbf{IR-Based PDDL} is the most reliable automated approach, achieving a perfect success rate (100\%) across all scenarios and meeting the KPI target of at least 90\% success over 30 trials. In contrast, LLM-Direct and PDDL-Direct are less consistent, with average success rates of 80\% and 70\%, respectively. Both approaches degrade substantially in Scenario 6, where each achieves only 40\% success, suggesting that the structured intermediate representation improves robustness in more constrained or failure-prone cases.
 
 Importantly, the failure modes of these two approaches differ. For \textbf{LLM-Direct}, failures primarily occur during physical execution, where the action sequences generated by the model cannot be reliably executed by the robot. These errors arise despite producing plausible high-level plans, indicating a mismatch between generated actions and the robot's execution constraints. In contrast, failures in \textbf{PDDL-Direct} are more often due to syntax or parsing errors in the generated PDDL, which prevent successful planning altogether. This distinction highlights that LLM-Direct suffers from execution-level unreliability, whereas PDDL-Direct is more sensitive to formal correctness.
 
-In terms of efficiency, LLM-Direct has the lowest average planning time among automated methods (6.460\,s), followed by IR-Based PDDL (6.950\,s) and PDDL-Direct (7.710\,s), as shown in Table~\ref{tab:overall-planning-time}. However, execution time remains similar across all automated methods (approximately 55--56\,s), as shown in Table~\ref{tab:overall-execution-time}, indicating that physical robot execution dominates end-to-end latency more than planner computation. The additional planning overhead of IR-Based PDDL relative to LLM-Direct is modest (approximately 0.49\,s) while providing a substantial reliability gain.
+In terms of efficiency, LLM-Direct has the lowest average planning time among automated methods (6.460\,s), followed by IR-Based PDDL (6.950\,s) and PDDL-Direct (7.710\,s), as shown in Table~\ref{tab:overall-planning-time}. However, we were not able to achieve the targeted completion time of 15 seconds. The slow end-to-end execution is dominated by the vision pipeline, especially because models such as SAM, CLIP, and the VLM are all run locally, which adds substantial inference latency. Execution time remains similar across all automated methods (approximately 40--45\,s), as shown in Table~\ref{tab:overall-execution-time}, indicating that perception and physical robot execution dominate end-to-end latency more than planner computation. The additional planning overhead of IR-Based PDDL relative to LLM-Direct is modest (approximately 0.49\,s) while providing a substantial reliability gain.
 
 Compared with automated pipelines, manual operation is significantly faster, with an average total time of 1.860\,s and 100\% success. This corresponds to roughly a 30$\times$ speed gap compared to automated execution time. Overall, the benchmark highlights a clear trade-off: IR-Based PDDL offers the best reliability for autonomous operation, while future improvements should prioritize reducing execution latency to close the gap with human-level efficiency.
 
