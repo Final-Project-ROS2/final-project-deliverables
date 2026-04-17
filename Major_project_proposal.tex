@@ -419,6 +419,31 @@ The system remains in a halted state until the recovery keyword \texttt{``OKAY''
 \paragraph{System Integration}
 The speech module interfaces directly with the ROS2 ecosystem through topic-based communication. Transcribed commands are published to the planning node, while emergency signals are sent to the motion controller. This modular design ensures clear separation between perception, decision-making, and execution layers.
 
+\subsubsection{Chat GUI Fallback Interface}
+As a practical fallback for the currently missing TTS module, we implemented a lightweight chat-style graphical user interface (GUI) to preserve user-system interaction quality. The interface allows users to send typed commands, receive system responses in a conversational format, and explicitly confirm execution decisions. The main interface layout is shown in Figure~\ref{fig:chat-gui-main}.
+
+At the command layer, the GUI dispatches high-level requests through \texttt{ros2 action send\_goal /prompt\_high\_level ...}, receives planner outputs from \texttt{/response}, and triggers confirmation through \texttt{/confirm}. To keep the interface responsive, ROS spinning and command-line invocations run in background worker threads, while the main Qt thread performs timer-driven queue polling and incremental message rendering.
+
+From a usability perspective, the interface introduces role-separated chat bubbles (System/User/Bot), response streaming simulation, and sender-grouped messages. The emergency workflow is also integrated directly in the GUI: pressing STOP publishes \texttt{True} to \texttt{/emergency}, locks normal controls, and displays a modal safety overlay; recovery requires a deliberate full-slider unlock that publishes \texttt{False} to \texttt{/emergency}. The emergency-locked state is illustrated in Figure~\ref{fig:chat-gui-emergency}.
+
+\IfFileExists{images/chat_gui_main.png}{
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{images/chat_gui_main.png}
+    \caption{Chat GUI fallback interface used as a temporary substitute for TTS feedback.}
+    \label{fig:chat-gui-main}
+\end{figure}
+}{}
+
+\IfFileExists{images/chat_gui_emergency.png}{
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{images/chat_gui_emergency.png}
+    \caption{Emergency-stop GUI state with modal lock and deliberate slider-based recovery.}
+    \label{fig:chat-gui-emergency}
+\end{figure}
+}{}
+
 Overall, the speech subsystem provides a reliable and structured interface for human–robot interaction, enabling safe command execution while maintaining responsiveness and modularity for future extensions.
 \subsection{Planning}
 
@@ -664,8 +689,11 @@ The project is structured around four primary technical area of concentration ex
 \subsubsection{Image Processing}
 The vision subsystem development was completed on schedule, with all foundational tasks and benchmarking successfully delivered. To better suit empirical deployment, some simulation components are being adapted, notably transitioning from GraspNet to Oriented Bounding Box (OBB) representations. The pipeline is now stable. Future work will finalize these architectural shifts and evaluate system robustness across diverse physical scenarios.
 \subsubsection{Speech Processing}
+The main functionality of the speech module has been completed on time according to the schedule. In particular, the transcription pipeline that converts spoken commands into text has been implemented, and keyword detection for \texttt{EXECUTE}, \texttt{STOP}, and \texttt{OKAY} is now working, tested, and benchmarked.
 
-Progress is slightly behind the planned schedule, though not significantly impacting overall project completion. The text-to-speech implementation has been completed using the Tacotron2 model. However, the TTS module is not yet fully integrated into the ROS2 system architecture. The TTS feature itself is considered a "nice to have" enhancement for user interaction, and the current development focus remains on completing the hardware setup, stabilizing the perception pipeline, and integrating the core planning and execution modules. Effort is directed toward migrating the overall system from simulation to physical hardware, with TTS integration deferred to later phases if time permits.
+The text-to-speech (TTS) component was not fully implemented and integrated into ROS2 within the planned timeframe. However, this does not affect the system's core functionality and does not hinder the primary user experience, since command understanding and execution remain fully operational.
+
+As an operational substitute for missing TTS feedback, a chat GUI interface has been implemented and integrated with the ROS2 pipeline. This interface provides command entry, streamed system responses, explicit confirmation controls, and emergency-stop interaction, allowing practical day-to-day human--robot interaction while full voice feedback remains future work.
 
 \subsubsection{Planning Algorithm}
 The project is completed on time according to the schedule. All tasks listed in the Initial Timeline for the Planning Algorithm section have been completed: system integration with hardware, planning algorithm enhancement, testing and troubleshooting, and evaluation and benchmarking. In particular, the automatic PDDL generation pipeline was improved by introducing a structured intermediate representation (IR) instead of directly generating PDDL code, which reduced syntax errors, improved interpretability, and lowered token usage.
@@ -1498,6 +1526,10 @@ For future development, these limitations could be addressed by incorporating mu
 \subsection{Speech}
 
 Despite the successful integration of the ASR module, several limitations remain. Currently, the system supports only one deactivation keyword, ``EXECUTE,'' which must appear at the end of a spoken command for it to be transmitted to the planning node. Commands that do not include this keyword are ignored, which reduces flexibility and limits the naturalness of user interaction. Similarly, the emergency stop mechanism recognizes only the keyword ``STOP'' to immediately halt robot operation, and can only be reset using the word ``OKAY.'' While these constraints improve reliability and ensure safe operation, they restrict the diversity of acceptable voice inputs.
+
+Another limitation is the absence of an integrated text-to-speech (TTS) module in the deployed ROS2 pipeline. Without verbal system feedback, interaction is less natural and less conversational, and users receive reduced immediate confirmation about command reception and task status.
+
+Although the newly introduced chat GUI partially mitigates this issue by providing visible feedback and explicit state transitions, it still cannot fully replicate the naturalness of bidirectional voice interaction.
 
 In addition, the current evaluation of the ASR system was conducted using expert users who are familiar with the command structure and system behavior. This introduces a bias in the reported performance, as real-world users may exhibit greater variability in speech patterns, phrasing, and pronunciation. As a result, the measured accuracy may overestimate the system's performance in more general deployment scenarios.
 
