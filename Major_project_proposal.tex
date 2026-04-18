@@ -342,14 +342,14 @@ For each test configuration, 20 manually marked pixel points were sampled and co
 
 \begin{table}[htbp]
     \centering
-    \caption{RMSE comparison of pure intrinsic versus hybrid intrinsic-empirical models at two camera heights.}
+    \caption{RMSE comparison of pure intrinsic versus hybrid intrinsic-empirical models at two camera heights. At $0.67\,\text{m}$, the intrinsic model performs best; the empirical model overfits and adds noise. At $0.55\,\text{m}$, empirical correction successfully mitigates systematic distortion.}
     \label{tab:error_isolation}
-    \begin{tabular}{@{}p{2.5cm}p{3cm}p{3.5cm}p{6cm}@{}}
+    \begin{tabular}{@{}p{2.5cm}p{3cm}p{3.5cm}@{}}
         \toprule
-        \textbf{Camera Height} & \textbf{Intrinsic Only (RMSE)} & \textbf{Intrinsic + Empirical (RMSE)} & \textbf{Observation} \\
+        \textbf{Camera Height} & \textbf{Intrinsic Only (RMSE)} & \textbf{Intrinsic + Empirical (RMSE)} \\
         \midrule
-        $0.67\,\text{m}$ & $1.28\,\text{cm}$ & $1.56\,\text{cm}$ & Intrinsic model performs best; empirical model overfits and adds noise at this height. \\
-        $0.55\,\text{m}$ & $2.35\,\text{cm}$ & $1.35\,\text{cm}$ & Empirical correction successfully mitigates systematic distortion at the lower standoff. \\
+        $0.67\,\text{m}$ & $1.28\,\text{cm}$ & $1.56\,\text{cm}$ \\
+        $0.55\,\text{m}$ & $2.35\,\text{cm}$ & $1.35\,\text{cm}$ \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -1054,6 +1054,29 @@ The robot should plan trajectories that are collision-free, navigating cluttered
 \subsubsection{Human Collaboration:} The robot must safely pass tools to human collaborators by respecting dynamic human safety zones, pausing or re-planning if a human unexpectedly enters its workspace.
 
 Overall, at the surface level, the outcome of this project will be a robot arm assistant capable of autonomously planning and executing tool-handling tasks in engineering workshop scenarios. On a deeper level, this project demonstrates how combining neural and symbolic AI can produce robots that reason about complex tasks, adapt to novel environments, and safely interact with humans. In the long run, this prototype serves as a foundation for intelligent robotic assistants in manufacturing, laboratories, and educational workshops, showing how autonomous planning can be extended from research into real-world engineering applications.
+
+\subsection{Reflections}
+
+\subsubsection*{Reflections on the Vision System}
+
+The vision subsystem of this project successfully integrated a complex pipeline of state-of-the-art models, including the Segment Anything Model (SAM), CLIP, and GraspNet, utilizing Oriented Bounding Boxes (OBB) to guide the URARM's manipulation tasks. Navigating the integration of these models provided profound insights into both applied computer vision and academic research methodologies.
+
+Looking back at the development of the vision pipeline, the learning curve extended far beyond simply writing code and connecting APIs. Reflecting on the key takeaways from this project and considering potential improvements for future iterations, the insights fall into three main areas:
+
+\paragraph{From Black-Box Implementation to Mathematical Understanding}
+Initially, the focus was heavily on model implementation. However, the most significant technical growth resulted from analyzing the underlying mathematics operating behind the scenes. Transitioning from treating models such as SAM and GraspNet as ``black boxes'' to comprehending their core image processing algorithms allowed for more effective troubleshooting and optimization. We learned that robust engineering in computer vision requires understanding \textit{why} a model behaves a certain way at a mathematical level, rather than merely knowing \textit{how} to execute its functions.
+
+\paragraph{Navigating Model Limitations and Environmental Constraints}
+A major takeaway was the necessity of critically evaluating the specific use cases and inherent limitations of each model. Theoretical capabilities frequently conflict with real-world constraints. For instance, we gained firsthand experience regarding how lighting variations and specific object geometries drastically impact model accuracy. If initiating the project today, we would invest significantly more time during the early stages to test the models against extreme environmental variables (such as harsh lighting or varied object models). This proactive approach would facilitate the development of a more robust, fault-tolerant pipeline from the outset, rather than addressing edge cases retroactively.
+
+\paragraph{Mastering the Research Methodology}
+Perhaps the most valuable outcome of this project was experiencing the complete lifecycle of academic research. This endeavor reinforced rigorous research methodologies from formulating a structured thought process and transitioning a raw idea into a formal experiment, to ultimately writing and submitting a research paper. We learned to systematically document issues, propose and implement solutions, and track performance improvements over time. The journey from conceptualization to drafting the final manuscript has fundamentally refined our approach to problem-solving, demonstrating that comprehensive documentation and structured iteration are just as critical as the underlying code.
+
+
+
+
+
+
 
 \newpage
 \section{Summary and Benefit to Real Industry}
