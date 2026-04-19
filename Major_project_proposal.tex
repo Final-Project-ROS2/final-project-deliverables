@@ -6,6 +6,7 @@
 \usepackage{float}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{tabularx}
 \usepackage{hyperref}
 \usepackage{siunitx}
 \usepackage{microtype}
@@ -344,14 +345,14 @@ For each test configuration, 20 manually marked pixel points were sampled and co
     \centering
     \caption{RMSE comparison of pure intrinsic versus hybrid intrinsic-empirical models at two camera heights. At $0.67\,\text{m}$, the intrinsic model performs best; the empirical model overfits and adds noise. At $0.55\,\text{m}$, empirical correction successfully mitigates systematic distortion.}
     \label{tab:error_isolation}
-    \begin{tabular}{@{}p{2.5cm}p{3cm}p{3.5cm}@{}}
+    \begin{tabularx}{\textwidth}{@{} >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X @{}}
         \toprule
-        \textbf{Camera Height} & \textbf{Intrinsic Only (RMSE)} & \textbf{Intrinsic + Empirical (RMSE)} \\
+        \textbf{Camera Height} & \textbf{Intrinsic Only (RMSE)} & \textbf{Intrinsic and Empirical (RMSE)} \\
         \midrule
         $0.67\,\text{m}$ & $1.28\,\text{cm}$ & $1.56\,\text{cm}$ \\
         $0.55\,\text{m}$ & $2.35\,\text{cm}$ & $1.35\,\text{cm}$ \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
 \end{table}
 
 The results mathematically isolate and confirm that the dominant error source is \textbf{systematic} rather than quantization-based. If the error were driven by limited pixel density, the metric error should decrease or remain constant as the camera moves closer to the workspace (from $0.67\,\text{m}$ to $0.55\,\text{m}$) due to an increase in spatial resolution per pixel. The observed \textit{increase} in intrinsic-only RMSE at the lower height contradicts this hypothesis, validating the use of the empirical affine correction in that regime.
@@ -1324,7 +1325,7 @@ As detailed in Table~\ref{tab:sam_benchmark}, SAM maintains high reliability at 
     \caption{SAM benchmark across varying lighting conditions. Bold indicates the best value per metric; $\dagger$ marks the minimum acceptable illumination threshold (70\,Lux).}
     \label{tab:sam_benchmark}
     \small
-    \begin{tabular}{lS[table-format=1.3]S[table-format=1.3]S[table-format=1.2]S[table-format=1.2]}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lS[table-format=1.3]S[table-format=1.3]S[table-format=1.2]S[table-format=1.2]}
         \toprule
         \textbf{Intensity (Lux)} & {\textbf{Avg Confidence}} & {\textbf{Avg IoU}} & {\textbf{Stability Rate}} & {\textbf{Latency (s)}} \\
         & & & {(AP $\ge$ 0.5)} & \\
