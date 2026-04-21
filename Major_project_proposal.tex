@@ -1058,23 +1058,53 @@ Overall, at the surface level, the outcome of this project will be a robot arm a
 
 \subsection{Reflections}
 
-\subsubsection*{Reflections on the Vision System}
+This project provided valuable insights across the vision, speech, and planning modules. Rather than treating each subsystem in isolation, we reflect both on module-specific lessons and broader takeaways that emerged from integrating the full system.
 
-The vision subsystem successfully integrated SAM, CLIP, and GraspNet into a unified pipeline to guide the robot's manipulation tasks. Beyond implementation, the project provided valuable insights into applied computer vision and research methodology. Our key reflections fall into three areas:
+%----------------------------------------
+\subsubsection{Reflections on the Vision System}
 
-\paragraph{From Black-Box Implementation to Mathematical Understanding}
-The most significant technical growth came from moving beyond model implementation to understanding the mathematics behind it. Treating SAM and GraspNet as ``black boxes'' initially limited our ability to troubleshoot effectively. We learned that robust engineering in computer vision requires understanding \textit{why} a model behaves a certain way, not just \textit{how} to call its functions.
+\paragraph{From Black-Box Implementation to Deeper Understanding}
+The most significant technical growth came from moving beyond treating models such as SAM and GraspNet as ``black boxes'' to developing a deeper understanding of their underlying principles. Initially, this limited our ability to troubleshoot effectively. We learned that robust engineering in computer vision requires understanding \textit{why} a model behaves a certain way, not just \textit{how} to use it.
 
 \paragraph{Navigating Model Limitations and Environmental Constraints}
-A key takeaway was learning to critically evaluate each model's limitations against real-world constraints. Lighting variations and object geometry had a much greater impact on accuracy than anticipated. If starting over, we would dedicate more time upfront to testing models under varied environmental conditions, rather than addressing failures retroactively.
+A key takeaway was learning to critically evaluate each model's limitations in real-world conditions. Lighting variations and object geometry had a much greater impact on performance than anticipated. If starting over, we would dedicate more time upfront to testing models under varied environmental conditions, rather than addressing failures retroactively.
 
-\paragraph{Mastering the Research Methodology}
-Perhaps the most valuable outcome was experiencing the full lifecycle of academic research from formulating a hypothesis and designing experiments, to writing and submitting a paper. We learned that systematic documentation and structured iteration are just as critical to a project's success as the code itself.
+%----------------------------------------
+\subsubsection{Reflections on the Speech System}
 
+\paragraph{[Reflection Title 1]}
+[Reflection on speech recognition, language understanding, latency, or robustness to user variability.]
 
+\paragraph{[Reflection Title 2]}
+[Optional second reflection. Could focus on prompt design, ambiguity in natural language, or integration with planning.]
 
+%----------------------------------------
+\subsubsection{Reflections on the Planning System}
 
+\paragraph{[Reflection Title 1]}
+[Reflection on planning approach. E.g., trade-offs between LLM-direct vs structured/IR-based methods, reliability, or failure modes.]
 
+\paragraph{[Reflection Title 2]}
+[Reflection on constraints, representation design, or debugging planning failures.]
+
+%----------------------------------------
+\subsubsection{Overall Reflections}
+
+\paragraph{From Implementation to Research-Oriented Thinking}
+Beyond individual modules, the project highlighted the importance of moving from implementation-focused development to a more research-oriented mindset. This included formulating hypotheses, designing structured experiments, and systematically evaluating results. We found that careful documentation and iterative refinement were as critical to success as the system implementation itself.
+
+\paragraph{System Integration as a Core Challenge}
+[Reflection on combining vision, speech, and planning. E.g., how small errors propagate across modules, importance of interface design.]
+
+\paragraph{Iterative Development and Evaluation}
+[Reflection on experimentation, benchmarking, and why early structured evaluation would improve the project if restarted.]
+
+\paragraph{What We Would Do Differently}
+[Concrete, forward-looking reflection. Be specific:
+- earlier prototyping?
+- stricter intermediate representations?
+- better dataset/control of environment?
+Avoid vague statements.]
 
 
 \newpage
@@ -1335,7 +1365,7 @@ As detailed in Table~\ref{tab:sam_benchmark}, SAM maintains high reliability at 
         70$^\dagger$ & 0.648         & 0.820          & 0.86          & \textbf{0.50} \\
         15          & 0.601          & 0.371          & 0.26          & 0.60          \\
         \bottomrule
-    \end{tabular}
+    \end{tabular*}
 \end{table}
 
 \begin{figure}[h]
