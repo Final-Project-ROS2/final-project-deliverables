@@ -1094,17 +1094,15 @@ Another key lesson was recognizing that different planning approaches fail in fu
 Beyond individual modules, the project highlighted the importance of moving from implementation-focused development to a more research-oriented mindset. This included formulating hypotheses, designing structured experiments, and systematically evaluating results. We found that careful documentation and iterative refinement were as critical to success as the system implementation itself.
 
 \paragraph{System Integration as a Core Challenge}
-[Reflection on combining vision, speech, and planning. E.g., how small errors propagate across modules, importance of interface design.]
+A major insight from this project was that integrating vision, speech, and planning is fundamentally more challenging than developing each module in isolation. Small errors in perception or language understanding often propagated downstream, leading to planning failures or incorrect execution. This highlighted the importance of well-defined interfaces and robust intermediate representations between modules. We learned that system design must account not only for individual component performance, but also for how uncertainty and errors accumulate across the pipeline.
 
 \paragraph{Iterative Development and Evaluation}
-[Reflection on experimentation, benchmarking, and why early structured evaluation would improve the project if restarted.]
+Another key takeaway was the importance of structured and early evaluation. In several cases, issues in the system were only identified after full pipeline integration, making them more difficult to diagnose. If starting over, we would adopt a more incremental evaluation strategy, benchmarking each module under controlled conditions before integration. Additionally, defining clear evaluation metrics earlier in the project would have enabled more systematic comparison between different approaches and faster identification of bottlenecks.
 
 \paragraph{What We Would Do Differently}
-[Concrete, forward-looking reflection. Be specific:
-- earlier prototyping?
-- stricter intermediate representations?
-- better dataset/control of environment?
-Avoid vague statements.]
+If we were to start the project again, we would place greater emphasis on system-level design rather than focusing primarily on implementation. In particular, we would define clearer goals, key performance indicators (KPIs), and evaluation metrics early in the project. Establishing these criteria upfront would allow us to more effectively benchmark progress and guide design decisions toward measurable outcomes.
+
+Additionally, we would adopt a more iterative development process by testing early and frequently. Earlier and more frequent testing at both the module and system levels would enable faster identification of bottlenecks, allowing us to refine the design and adapt more efficiently throughout the development process.
 
 
 \newpage
