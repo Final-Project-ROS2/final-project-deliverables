@@ -1072,11 +1072,12 @@ A key takeaway was learning to critically evaluate each model's limitations in r
 %----------------------------------------
 \subsubsection{Reflections on the Speech System}
 
-\paragraph{[Reflection Title 1]}
-[Reflection on speech recognition, language understanding, latency, or robustness to user variability.]
+\paragraph{Robustness to User Variability}
+One of the key observations from the speech module was the system’s sensitivity to user behavior and speaking style. While the ASR pipeline achieved high accuracy during evaluation, the participants were all expert users who were familiar with the expected command structure. This resulted in consistently well-formed inputs and clear pronunciation. However, this also revealed a limitation: the system’s performance may not generalize as effectively to non-expert users, who may introduce variations in phrasing, pronunciation, or speaking pace. This highlights the importance of evaluating ASR systems under more diverse and realistic conditions, and suggests that robustness to user variability remains an important area for improvement.
 
-\paragraph{[Reflection Title 2]}
-[Optional second reflection. Could focus on prompt design, ambiguity in natural language, or integration with planning.]
+\paragraph{Trade-off Between Safety and Natural Interaction}
+Another important insight was the trade-off introduced by the keyword-based command gating mechanism. The requirement for a strict activation keyword (e.g., \texttt{``EXECUTE''}) ensures that only intentional commands are forwarded to the planning system, significantly reducing the risk of unintended robot actions. Similarly, the use of dedicated emergency and recovery keywords (\texttt{``STOP''}, \texttt{``OKAY''}) provides a simple and reliable safety interface. However, this design constrains the naturalness of interaction, requiring users to conform to a rigid command structure. This demonstrates that while keyword-based control is effective for safety-critical systems, it limits flexibility and highlights the need for more advanced intent recognition mechanisms in future work.
+
 
 %----------------------------------------
 \subsubsection{Reflections on the Planning System}
