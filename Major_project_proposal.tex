@@ -6,6 +6,7 @@
 \usepackage{float}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{tabularx}
 \usepackage{hyperref}
 \usepackage{siunitx}
 \usepackage{microtype}
@@ -342,16 +343,16 @@ For each test configuration, 20 manually marked pixel points were sampled and co
 
 \begin{table}[htbp]
     \centering
-    \caption{RMSE comparison of pure intrinsic versus hybrid intrinsic-empirical models at two camera heights.}
+    \caption{RMSE comparison of pure intrinsic versus hybrid intrinsic-empirical models at two camera heights. At $0.67\,\text{m}$, the intrinsic model performs best; the empirical model overfits and adds noise. At $0.55\,\text{m}$, empirical correction successfully mitigates systematic distortion.}
     \label{tab:error_isolation}
-    \begin{tabular}{@{}p{2.5cm}p{3cm}p{3.5cm}p{6cm}@{}}
+    \begin{tabularx}{\textwidth}{@{} >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X @{}}
         \toprule
-        \textbf{Camera Height} & \textbf{Intrinsic Only (RMSE)} & \textbf{Intrinsic + Empirical (RMSE)} & \textbf{Observation} \\
+        \textbf{Camera Height} & \textbf{Intrinsic Only (RMSE)} & \textbf{Intrinsic and Empirical (RMSE)} \\
         \midrule
-        $0.67\,\text{m}$ & $1.28\,\text{cm}$ & $1.56\,\text{cm}$ & Intrinsic model performs best; empirical model overfits and adds noise at this height. \\
-        $0.55\,\text{m}$ & $2.35\,\text{cm}$ & $1.35\,\text{cm}$ & Empirical correction successfully mitigates systematic distortion at the lower standoff. \\
+        $0.67\,\text{m}$ & $1.28\,\text{cm}$ & $1.56\,\text{cm}$ \\
+        $0.55\,\text{m}$ & $2.35\,\text{cm}$ & $1.35\,\text{cm}$ \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
 \end{table}
 
 The results mathematically isolate and confirm that the dominant error source is \textbf{systematic} rather than quantization-based. If the error were driven by limited pixel density, the metric error should decrease or remain constant as the camera moves closer to the workspace (from $0.67\,\text{m}$ to $0.55\,\text{m}$) due to an increase in spatial resolution per pixel. The observed \textit{increase} in intrinsic-only RMSE at the lower height contradicts this hypothesis, validating the use of the empirical affine correction in that regime.
@@ -1055,6 +1056,56 @@ The robot should plan trajectories that are collision-free, navigating cluttered
 
 Overall, at the surface level, the outcome of this project will be a robot arm assistant capable of autonomously planning and executing tool-handling tasks in engineering workshop scenarios. On a deeper level, this project demonstrates how combining neural and symbolic AI can produce robots that reason about complex tasks, adapt to novel environments, and safely interact with humans. In the long run, this prototype serves as a foundation for intelligent robotic assistants in manufacturing, laboratories, and educational workshops, showing how autonomous planning can be extended from research into real-world engineering applications.
 
+\subsection{Reflections}
+
+This project provided valuable insights across the vision, speech, and planning modules. Rather than treating each subsystem in isolation, we reflect both on module-specific lessons and broader takeaways that emerged from integrating the full system.
+
+%----------------------------------------
+\subsubsection{Reflections on the Vision System}
+
+\paragraph{From Black-Box Implementation to Deeper Understanding}
+The most significant technical growth came from moving beyond treating models such as SAM and GraspNet as ``black boxes'' to developing a deeper understanding of their underlying principles. Initially, this limited our ability to troubleshoot effectively. We learned that robust engineering in computer vision requires understanding \textit{why} a model behaves a certain way, not just \textit{how} to use it.
+
+\paragraph{Navigating Model Limitations and Environmental Constraints}
+A key takeaway was learning to critically evaluate each model's limitations in real-world conditions. Lighting variations and object geometry had a much greater impact on performance than anticipated. If starting over, we would dedicate more time upfront to testing models under varied environmental conditions, rather than addressing failures retroactively.
+
+%----------------------------------------
+\subsubsection{Reflections on the Speech System}
+
+\paragraph{Robustness to User Variability}
+One of the key observations from the speech module was the system’s sensitivity to user behavior and speaking style. While the ASR pipeline achieved high accuracy during evaluation, the participants were all expert users who were familiar with the expected command structure. This resulted in consistently well-formed inputs and clear pronunciation. However, this also revealed a limitation: the system’s performance may not generalize as effectively to non-expert users, who may introduce variations in phrasing, pronunciation, or speaking pace. This highlights the importance of evaluating ASR systems under more diverse and realistic conditions, and suggests that robustness to user variability remains an important area for improvement.
+
+\paragraph{Trade-off Between Safety and Natural Interaction}
+Another important insight was the trade-off introduced by the keyword-based command gating mechanism. The requirement for a strict activation keyword (e.g., \texttt{``EXECUTE''}) ensures that only intentional commands are forwarded to the planning system, significantly reducing the risk of unintended robot actions. Similarly, the use of dedicated emergency and recovery keywords (\texttt{``STOP''}, \texttt{``OKAY''}) provides a simple and reliable safety interface. However, this design constrains the naturalness of interaction, requiring users to conform to a rigid command structure. This demonstrates that while keyword-based control is effective for safety-critical systems, it limits flexibility and highlights the need for more advanced intent recognition mechanisms in future work.
+
+
+%----------------------------------------
+\subsubsection{Reflections on the Planning System}
+
+\paragraph{The Importance of Structured Intermediate Representations}
+One of the most significant insights from the planning module was the impact of introducing a structured intermediate representation (IR) between natural language and PDDL generation. While directly prompting the LLM to generate PDDL was conceptually simple, it often resulted in syntactic errors and invalid problem definitions. By constraining the output space through an IR, we were able to significantly improve reliability and consistency. This highlighted that, for complex symbolic tasks, LLMs benefit from operating within well-defined structures rather than being relied upon for fully end-to-end generation.
+
+\paragraph{Understanding and Differentiating Failure Modes}
+Another key lesson was recognizing that different planning approaches fail in fundamentally different ways. The LLM-direct approach often produced plans that appeared reasonable but failed during execution due to mismatches with the physical system. In contrast, direct PDDL generation frequently failed earlier due to syntax and parsing errors. The IR-based approach reduced both types of failures but did not eliminate them entirely. This emphasized the importance of not only evaluating success rates, but also analyzing \textit{how} and \textit{why} failures occur. Such understanding is crucial for designing more robust systems and informed our decision to prioritize structured generation and validation mechanisms.
+
+%----------------------------------------
+\subsubsection{Overall Reflections}
+
+\paragraph{From Implementation to Research-Oriented Thinking}
+Beyond individual modules, the project highlighted the importance of moving from implementation-focused development to a more research-oriented mindset. This included formulating hypotheses, designing structured experiments, and systematically evaluating results. We found that careful documentation and iterative refinement were as critical to success as the system implementation itself.
+
+\paragraph{System Integration as a Core Challenge}
+A major insight from this project was that integrating vision, speech, and planning is fundamentally more challenging than developing each module in isolation. Small errors in perception or language understanding often propagated downstream, leading to planning failures or incorrect execution. This highlighted the importance of well-defined interfaces and robust intermediate representations between modules. We learned that system design must account not only for individual component performance, but also for how uncertainty and errors accumulate across the pipeline.
+
+\paragraph{Iterative Development and Evaluation}
+Another key takeaway was the importance of structured and early evaluation. In several cases, issues in the system were only identified after full pipeline integration, making them more difficult to diagnose. If starting over, we would adopt a more incremental evaluation strategy, benchmarking each module under controlled conditions before integration. Additionally, defining clear evaluation metrics earlier in the project would have enabled more systematic comparison between different approaches and faster identification of bottlenecks.
+
+\paragraph{What We Would Do Differently}
+If we were to start the project again, we would place greater emphasis on system-level design rather than focusing primarily on implementation. In particular, we would define clearer goals, key performance indicators (KPIs), and evaluation metrics early in the project. Establishing these criteria upfront would allow us to more effectively benchmark progress and guide design decisions toward measurable outcomes.
+
+Additionally, we would adopt a more iterative development process by testing early and frequently. Earlier and more frequent testing at both the module and system levels would enable faster identification of bottlenecks, allowing us to refine the design and adapt more efficiently throughout the development process.
+
+
 \newpage
 \section{Summary and Benefit to Real Industry}
 
@@ -1303,7 +1354,7 @@ As detailed in Table~\ref{tab:sam_benchmark}, SAM maintains high reliability at 
     \caption{SAM benchmark across varying lighting conditions. Bold indicates the best value per metric; $\dagger$ marks the minimum acceptable illumination threshold (70\,Lux).}
     \label{tab:sam_benchmark}
     \small
-    \begin{tabular}{lS[table-format=1.3]S[table-format=1.3]S[table-format=1.2]S[table-format=1.2]}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lS[table-format=1.3]S[table-format=1.3]S[table-format=1.2]S[table-format=1.2]}
         \toprule
         \textbf{Intensity (Lux)} & {\textbf{Avg Confidence}} & {\textbf{Avg IoU}} & {\textbf{Stability Rate}} & {\textbf{Latency (s)}} \\
         & & & {(AP $\ge$ 0.5)} & \\
@@ -1313,7 +1364,7 @@ As detailed in Table~\ref{tab:sam_benchmark}, SAM maintains high reliability at 
         70$^\dagger$ & 0.648         & 0.820          & 0.86          & \textbf{0.50} \\
         15          & 0.601          & 0.371          & 0.26          & 0.60          \\
         \bottomrule
-    \end{tabular}
+    \end{tabular*}
 \end{table}
 
 \begin{figure}[h]
