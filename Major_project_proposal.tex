@@ -1081,11 +1081,11 @@ A key takeaway was learning to critically evaluate each model's limitations in r
 %----------------------------------------
 \subsubsection{Reflections on the Planning System}
 
-\paragraph{[Reflection Title 1]}
-[Reflection on planning approach. E.g., trade-offs between LLM-direct vs structured/IR-based methods, reliability, or failure modes.]
+\paragraph{The Importance of Structured Intermediate Representations}
+One of the most significant insights from the planning module was the impact of introducing a structured intermediate representation (IR) between natural language and PDDL generation. While directly prompting the LLM to generate PDDL was conceptually simple, it often resulted in syntactic errors and invalid problem definitions. By constraining the output space through an IR, we were able to significantly improve reliability and consistency. This highlighted that, for complex symbolic tasks, LLMs benefit from operating within well-defined structures rather than being relied upon for fully end-to-end generation.
 
-\paragraph{[Reflection Title 2]}
-[Reflection on constraints, representation design, or debugging planning failures.]
+\paragraph{Understanding and Differentiating Failure Modes}
+Another key lesson was recognizing that different planning approaches fail in fundamentally different ways. The LLM-direct approach often produced plans that appeared reasonable but failed during execution due to mismatches with the physical system. In contrast, direct PDDL generation frequently failed earlier due to syntax and parsing errors. The IR-based approach reduced both types of failures but did not eliminate them entirely. This emphasized the importance of not only evaluating success rates, but also analyzing \textit{how} and \textit{why} failures occur. Such understanding is crucial for designing more robust systems and informed our decision to prioritize structured generation and validation mechanisms.
 
 %----------------------------------------
 \subsubsection{Overall Reflections}
