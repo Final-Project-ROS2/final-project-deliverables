@@ -1,216 +1,232 @@
-# **Presentation Structure (15–20 Main Slides + 20 Appendix)**
+# Presentation Structure
 
-[Presentation Slides](https://www.canva.com/design/DAG5OLXKFVg/OVB35JjWlXyXzuyhKtpv5w/edit?utm_content=DAG5OLXKFVg&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
-
-## **0. Title Slide (1 slide)**
-
-* Project name
-* Your name, advisor, program
-* One simple image (e.g., system diagram/photo)
-
-> *Keep it clean—this acts as your “start” since you cannot use an outline slide.*
+[Presentation Slides](https://canva.link/y7g9x1q78kuk5jz)
 
 ---
 
-## **1. Problem, Goal, Final Target (1 slide)** [Pooh]
+## 0. Title Slide
 
-**Slides: 1**
+**Slides: 1**  
+**Duration: 20-30 sec**
 
-* Clear statement of the final goal
-* What the system *must* achieve (success criteria)
-* One diagram showing input → system → output
-
-> *Advisor said start with COMPLETE GOAL.*
-
----
-
-## **2. Application Domain & Motivation (2–3 slides)** [Pory]
-
-**Slides: 2–3**
-
-* What domain your project lies in
-* Why the domain matters
-* What users need / real-world challenges
-* Visual-heavy: photos, diagrams, scenarios
-
-> *Advisor said “can go OVERBOARD” on domain.*
+- Project title (clear and specific)
+- Team member names, advisor, program
+- One strong visual (system photo or architecture thumbnail)
 
 ---
 
-## **3. Related Work + Gap Analysis (2 slides)**
+## 1. Problem Statement [Pooh]
 
-**Slides: 2**
+**Slides: 1**  
+**Duration: 30 sec**
 
-* Existing approaches (industry + academia)
-* What they can do
-* What they cannot do (your gap)
-* Bullet-point comparison chart
-
-> *Keep it honest: “DONT MAKE STUFF UP.”*
+- Define the real-world problem in one sentence
+- Explain why existing workflows are difficult or inefficient
 
 ---
 
-## **4. System Requirements & Engineering Process (2 slides)** [MB]
+## 2. Potential Applications [Pory]
 
-**Slides: 2**
+**Slides: 1**  
+**Duration: 1 min**
 
-* Requirements (functional + non-functional)
-* Methodology:
-
-  * iteration cycles
-  * experiments
-  * failures + how you fixed them
-* A timeline / flowchart showing how the project evolved
-
-> *Advisor wants PROCESS + methodology emphasized.*
+- Identify the domain and target users
+- Show 2-3 practical use scenarios
+- Explain impact: time savings, safety, accessibility, or reliability
 
 ---
 
-## **5. Overall System Architecture (2 slides)** [Kong]
+## 3. SOTA, Related Work, and Gap Analysis [Kong]
 
-**Slides: 2**
+**Slides: 4**  
+**Duration: 2 min 30 sec**
 
-* Main diagram of the entire pipeline
-* Data flow from microphone/camera → models → planner → robot
-* Subsystem responsibilities
+### 3.1 Existing Industry Solutions
 
-> *Make sure structure matches your final report.*
+- What current products/systems can already do
+- Their deployment strengths (speed, maturity, robustness)
 
----
+### 3.2 Academic Approaches
 
-## **6. Subsystem Results (ASR / Vision / Planning) (4–6 slides)**
+- Key methods from papers most related to your pipeline
+- Report representative metrics and assumptions
 
-### 6.1 ASR Module (1–2 slides) [Pory]
+### 3.3 Limitations and Gaps
 
-**Slides: 1–2**
+- What breaks in your target conditions
+- Constraints not handled well (latency, hardware limits, task complexity)
 
-* Model choice, dataset
-* Benchmark accuracy/WER
-* Limitations
-* Spectrogram or model diagram
+### 3.4 Gap-to-Contribution Mapping
 
-### 6.2 Vision Module (1–2 slides) [MB]
-
-**Slides: 1–2**
-
-* What detections you perform
-* Metrics/benchmark
-* Pipeline diagram
-
-### 6.3 Planning + Integration (1–2 slides) [Kong]
-
-**Slides: 1–2**
-
-* How planning works in your system
-* Performance, constraints
-* Latency, success rate
-
-> *Keep each subsystem visually intuitive.*
+- Comparison: approach vs capability vs limitation
+- Clear statement of your technical contribution
 
 ---
 
-## **7. Simulation Setup + Hardware (1–2 slides)** [Kong]
+## 4. System Requirements and Engineering Process [MB]
 
-**Slides: 1–2**
+**Slides: 1**  
+**Duration: 30 sec**
 
-* Simulation environment
-* Real hardware configuration
-* Images, connection diagrams
-* Key constraints you solved (latency, safety, coordinate transform issues)
-
----
-
-## **8. System-Level Results (1 slide)** [Kong]
-
-**Slides: 1**
-
-* End-to-end performance
-* Success rates, timings
-* Before/after improvements
-
-> *This section shows that the whole system works, not just parts.*
+- Functional requirements (what the system does)
+- Non-functional requirements (latency, reliability, hardware constraints)
+- Engineering workflow: iterations, experiments, failures, fixes
 
 ---
 
-## **9. Demo (1 slide)** [Kong]
+## 5. First-Semester Subsystem Results (ASR / Vision / Planning)
 
-**Slides: 1**
+### 5.1 ASR Module [Pory]
 
-* A video or image sequence
-* System performing the final task
+**Slides: 1**  
+**Duration: 30 sec**
 
-> *Short & focused.*
+- Diagram: ASR pipeline
+- Model and technology used
+- System design
 
----
+### 5.2 Vision Module [MB]
 
-## **10. Future Work / Improvement (1 slide)** [Pooh]
+**Slides: 1**  
+**Duration: 1 min**
 
-**Slides: 1**
+- Diagram: Vision Pipeline
+- Model and technology used
+- System design
 
-* Clear next steps (realistic)
-* No speculation
+### 5.3 Planning Module [Kong]
 
-> *Advisor said “don’t make stuff up.”*
+**Slides: 1**  
+**Duration: 1 min**
 
----
-
-# 📚 Appendix Slides (for Q&A) — 20 slides allowed
-
-Your appendix should contain:
-
-### A. Technical Details (6–8 slides)
-
-* Model architectures
-* Hyperparameters
-* Data preprocessing
-* Training curves
-* Hardware communication details
-* ROS2 action flow diagrams
-
-### B. Failure Cases (3–4 slides)
-
-* What failed in ASR, vision, planning
-* How you debugged it
-
-### C. Additional Experiments (3–4 slides)
-
-* Ablation studies
-* Different architectures tested
-
-### D. Engineering process extras (3–4 slides)
-
-* Logs
-* Testing methodology
-* Edge cases
-* Validation steps
-
-### E. Misc. Backup Slides (2–3 slides)
-
-* Definitions
-* Additional diagrams
-* System block comparisons
-
-**TOTAL APPENDIX: ~20 slides**
-
-These exist ONLY to answer questions.
+- Diagram: Planning Pipeline
+- Model and technology used
+- System design
 
 ---
 
-# 🔥 Summary of Improvements (What Changed from Your Current Structure)
+## 6. Overall System Architecture [Kong]
 
-| Current Structure                | Improved Structure Based on Feedback                                      |
-| -------------------------------- | ------------------------------------------------------------------------- |
-| Introduction/background          | → Goal + domain + problem → strong contextual start                       |
-| Architecture overview            | ✔ Still included, but expanded and placed AFTER motivation & related work |
-| ASR, Vision, Planning results    | ✔ Still included but reorganized under “Subsystem results”                |
-| Simulation + hardware            | ✔ Still included                                                          |
-| Demo                             | ✔ Still included                                                          |
-| ❌ No related work                | ✔ Added related work + gap analysis                                       |
-| ❌ No process methodology         | ✔ Added engineering process section                                       |
-| ❌ No application domain emphasis | ✔ Added domain section with extra depth                                   |
-| ❌ No future plans                | ✔ Added a realistic “Future work” slide                                   |
-| ❌ No appendix                    | ✔ Added 20-slide appendix for Q&A                                         |
+**Slides: 1**  
+**Duration: 30 sec**
 
+- End-to-end architecture diagram
+- Data flow: microphone/camera -> perception -> planner -> robot
+- Interface points between modules
 
-Just tell me!
+---
 
+## 7. First-Semester Demo [Kong]
+
+**Slides: 1**  
+**Duration: 1 min**
+
+- Short demo clip or image sequence
+- One sentence of context before playback
+- Highlight one successful behavior and one observed limitation
+
+---
+
+## 8. Second-Semester Improvements (Hardware / Vision / Speech / Planning)
+
+### 8.1 Hardware Setup [Pory]
+
+**Slides: 1**  
+**Duration: 1 min**
+
+- Setup photo with labeled components
+- Hardware design and setup
+
+### 8.2 Vision Module Improvements [MB]
+
+**Slides: 1-3**  
+**Duration: 1 min 30 sec**
+
+- What changed (model, preprocessing, training data)
+- Updated pipeline diagram
+
+### 8.3 Speech Module Improvements [Pooh]
+
+**Slides: 1**  
+**Duration: 1 min**
+
+- Explain newly implemented TTS
+- Diagram: TTS pipeline
+- How it interface with the system
+
+### 8.4 Planning Improvements [Kong]
+
+**Slides: 1-2**  
+**Duration: 1 min 30 sec**
+
+- Design and implementation of new approach
+- Diagram: Comparison between all approaches
+
+---
+
+## 9. Final Result Demo [Kong]
+
+**Slides: 1**  
+**Duration: 1 min**
+
+- Final integrated demo 
+- Explain planning process, task decomposition, primitive combinations
+- End with one sentence on achieved goal
+
+---
+
+## 10. Final Subsystem Results (Speech / Vision / Planning)
+
+### 10.1 Speech Module [Pory]
+
+**Slides: 1-2**  
+**Duration: 30 sec**
+
+- Benchmark results
+- Limitations
+
+### 10.2 Vision Module [MB]
+
+**Slides: 1-2**  
+**Duration: 1 min 30 sec**
+
+- Benchmark results
+- Limitations
+
+### 10.3 Planning Module [Kong]
+
+**Slides: 1-2**  
+**Duration: 1 min 30 sec**
+
+- Benchmark results
+- Limitations
+
+---
+
+## 11. Overall System Results [Kong]
+
+**Slides: 1**  
+**Duration: 30 sec**
+
+- Benchmark results
+- Limitations
+
+---
+
+## 12. Project Management Timeline [MB]
+
+**Slides: 1**  
+**Duration: 30 sec**
+
+- Milestone timeline (planning, implementation, integration, testing)
+- Ownership matrix (who led each subsystem)
+- Final delivery status against original plan
+
+---
+
+## 13. Future Work and Improvements [Pooh]
+
+**Slides: 1**  
+**Duration: 30 sec**
+
+- Potential improvements based on limitations
