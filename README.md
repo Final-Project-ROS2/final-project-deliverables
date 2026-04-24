@@ -2,6 +2,10 @@
 
 [Presentation Slides](https://canva.link/y7g9x1q78kuk5jz)
 
+[Tracking Sheet](https://docs.google.com/spreadsheets/d/1n5dCuBXSGfAuXipULjSta-26P_V9z6Yfl_AHYyNIImo/edit?usp=sharing)
+
+**PLEASE UPDATE THE TRACKING SHEET**
+
 ---
 
 ## 0. Title Slide
