@@ -101,7 +101,7 @@
 ### 5.3 Planning Module [Kong]
 
 **Slides: 1**  
-**Duration: 1 min**
+**Duration: 30 sec**
 
 - Diagram: Planning Pipeline
 - Model and technology used
@@ -210,7 +210,7 @@
 ## 11. Overall System Results [Kong]
 
 **Slides: 1**  
-**Duration: 30 sec**
+**Duration: 1 min**
 
 - Benchmark results
 - Limitations
